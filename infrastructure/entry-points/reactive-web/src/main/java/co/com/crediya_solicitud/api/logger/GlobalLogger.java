@@ -1,7 +1,7 @@
 package co.com.crediya_solicitud.api.logger;
 
 
-import co.com.crediya_solicitud.usecase.solicitud.logger.Logger;
+import co.com.crediya_solicitud.model.logger.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
@@ -28,6 +28,11 @@ public class GlobalLogger implements Logger {
     @Override
     public void error(String message, Throwable exception) {
         logger.error(message, exception);
+    }
+
+    @Override
+    public void error(String message) {
+        logger.error(message);
     }
 }
 

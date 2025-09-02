@@ -18,4 +18,8 @@ public class LoanTypes {
     private Double interest_rate;
     private Boolean automatic_validation;
 
+    public boolean isValidAmount(BigDecimal amount) {
+        return amount.compareTo(minimum_amount) >= 0 &&
+                amount.compareTo(maximum_amount) <= 0;
+    }
 }

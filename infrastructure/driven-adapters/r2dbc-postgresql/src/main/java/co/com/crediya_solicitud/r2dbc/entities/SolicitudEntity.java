@@ -1,7 +1,6 @@
 package co.com.crediya_solicitud.r2dbc.entities;
 
 
-
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

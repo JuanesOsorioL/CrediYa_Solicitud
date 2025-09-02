@@ -4,7 +4,7 @@ import co.com.crediya_solicitud.model.UserGateway;
 import co.com.crediya_solicitud.model.solicitud.gateways.SolicitudRepository;
 import co.com.crediya_solicitud.usecase.loantypes.LoanTypesUseCase;
 import co.com.crediya_solicitud.usecase.solicitud.SolicitudUseCase;
-import co.com.crediya_solicitud.usecase.solicitud.logger.Logger;
+import co.com.crediya_solicitud.model.logger.Logger;
 import org.springframework.context.annotation.*;
 
 @Configuration

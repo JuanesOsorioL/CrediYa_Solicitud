@@ -1,6 +1,10 @@
-package co.com.crediya_solicitud.usecase.exception;
+package co.com.crediya_solicitud.model.error;
 
 import lombok.Getter;
+
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Getter
 public enum SolicitudErrorCode {
@@ -23,5 +27,13 @@ public enum SolicitudErrorCode {
     SolicitudErrorCode(String code, String message) {
         this.code = code;
         this.message = message;
+    }
+
+    private static final Map<String, SolicitudErrorCode> CODE_MAP = Stream.of(values())
+            .collect(Collectors.toMap(SolicitudErrorCode::getCode, e -> e));
+
+
+    public static SolicitudErrorCode fromCode(String code) {
+        return CODE_MAP.get(code);
     }
 }

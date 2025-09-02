@@ -7,7 +7,7 @@ import co.com.crediya_solicitud.api.utils.ApiResponseBuilder;
 import co.com.crediya_solicitud.model.UserGateway;
 import co.com.crediya_solicitud.model.solicitud.Solicitud;
 import co.com.crediya_solicitud.usecase.solicitud.SolicitudService;
-import co.com.crediya_solicitud.usecase.exception.SolicitudErrorCode;
+import co.com.crediya_solicitud.model.error.SolicitudErrorCode;
 import co.com.crediya_solicitud.usecase.exception.SolicitudValidationException;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
@@ -32,24 +32,14 @@ public class SolicitudHandler {
     private final GlobalLogger logger;
     private final UserGateway userGateway;
 
-    private static final Map<String, SolicitudErrorCode> CODE_TO_ERROR_MAP = Map.of(
-            "USR_001", SolicitudErrorCode.DOCUMENT_EMPTY,
-            "USR_002", SolicitudErrorCode.TERM_EMPTY,
-            "USR_003", SolicitudErrorCode.EMAIL_INVALID,
-            "USR_004", SolicitudErrorCode.ID_STATE_EMPTY,
-            "USR_005", SolicitudErrorCode.LOAN_TYPE_NOT_REGISTERED,
-            "USR_006", SolicitudErrorCode.EMAIL_EMPTY,
-            "USR_007", SolicitudErrorCode.AMOUNT_EMPTY,
-            "USR_008", SolicitudErrorCode.ID_LOAN_TYPE_EMPTY,
-            "USR_999", SolicitudErrorCode.GENERIC_ERROR
-    );
-
     private SolicitudErrorCode mapMessageToErrorCode(String code) {
-        return CODE_TO_ERROR_MAP.get(code);
+        return SolicitudErrorCode.fromCode(code);
     }
 
     public Mono<ServerResponse> createSolicitud(ServerRequest request) {
         return request.bodyToMono(SolicitudDto.class)
+                .doOnSubscribe(sub -> logger.info("Nueva petición para crear solicitud"))
+                .doOnNext(dto -> logger.info("DTO recibido"))
                 .flatMap(dto -> {
                     List<SolicitudErrorCode> infraErrors = validator.validate(dto).stream()
                             .map(v -> mapMessageToErrorCode(v.getMessage()))
@@ -58,17 +48,22 @@ public class SolicitudHandler {
                             .toList();
 
                     if (!infraErrors.isEmpty()) {
+                        logger.error("Errores infraestructurales detectados");
                         return Mono.error(new SolicitudValidationException(infraErrors, List.of(),null));
                     }
+
                     Solicitud solicitud = solicitudDtoMapper.toSolicitud(dto);
+                    logger.info("Validaciones correctas, transformado a dominio");
                     return solicitudService.createSolicitud(solicitud)
+                            .doOnSubscribe(sub -> logger.info("Invocando solicitudService.createSolicitud"))
+                            .doOnNext(u -> logger.info("Solicitud persistido"))
                             .map(solicitudDtoMapper::toDto)
-                            .flatMap(s -> apiResponseBuilder.build(
+                            .flatMap(solicitudDto -> apiResponseBuilder.build(
                                     HttpStatus.CREATED,
                                     "Solicitud creada exitosamente",
-                                    s
+                                    solicitudDto
                             ));
-                });
+                }).doOnSuccess(dto -> logger.info("Usuario creado exitosamente"));
     }
 
     public Mono<ServerResponse> findAll(ServerRequest serverRequest) {

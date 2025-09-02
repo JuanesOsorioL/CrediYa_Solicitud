@@ -1,4 +1,4 @@
-package co.com.crediya_solicitud.usecase.solicitud.logger;
+package co.com.crediya_solicitud.model.logger;
 
 public interface Logger {
     void info(String message);
@@ -8,4 +8,6 @@ public interface Logger {
     void warnTwo(String message, String body);
 
     void error(String message, Throwable exception);
+
+    void error(String message);
 }

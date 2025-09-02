@@ -2,8 +2,6 @@ package co.com.crediya_solicitud.model.state;
 
 import lombok.*;
 
-import java.math.BigDecimal;
-
 @Getter
 @Setter
 @NoArgsConstructor

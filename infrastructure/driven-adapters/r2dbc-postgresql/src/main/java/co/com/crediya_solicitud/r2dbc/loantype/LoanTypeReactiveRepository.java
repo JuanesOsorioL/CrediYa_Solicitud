@@ -10,10 +10,6 @@ public interface LoanTypeReactiveRepository
         extends ReactiveCrudRepository<LoanTypeEntity, String>,
         ReactiveQueryByExampleExecutor<LoanTypeEntity> {
 
-   // Mono<Boolean> existsByLoanTypeId(String loanTypeId);
-
-
     Mono<LoanTypes> findByLoanTypeId(String loanTypeId);
-
 
 }
