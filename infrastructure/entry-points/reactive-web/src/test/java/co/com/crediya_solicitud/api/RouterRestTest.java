@@ -1,60 +1,76 @@
 package co.com.crediya_solicitud.api;
 
-import org.assertj.core.api.Assertions;
+
+
+import co.com.crediya_solicitud.api.config.SolicitudPath;
+import co.com.crediya_solicitud.api.exception.GlobalErrorHandler;
+import co.com.crediya_solicitud.api.utils.ApiResponseBuilder;
+import co.com.crediya_solicitud.usecase.solicitud.SolicitudService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.ContextConfiguration;
+import org.mockito.Mockito;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.server.RouterFunction;
+import org.springframework.web.reactive.function.server.ServerResponse;
+import reactor.core.publisher.Mono;
 
-@ContextConfiguration(classes = {SolicitudRouterRest.class, SolicitudHandler.class})
-@WebFluxTest
-class RouterRestTest {
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
-    @Autowired
+class SolicitudRouterRestTest {
+
     private WebTestClient webTestClient;
+    private SolicitudHandler handler;
+    private GlobalErrorHandler errorHandler;
+    private SolicitudPath solicitudPath;
 
-    @Test
-    void testListenGETUseCase() {
-        webTestClient.get()
-                .uri("/api/usecase/path")
-                .accept(MediaType.APPLICATION_JSON)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(String.class)
-                .value(userResponse -> {
-                            Assertions.assertThat(userResponse).isEmpty();
-                        }
-                );
+    @BeforeEach
+    void setUp() {
+
+        ApiResponseBuilder apiResponseBuilder = Mockito.mock(ApiResponseBuilder.class);
+        SolicitudService solicitudService = Mockito.mock(SolicitudService.class);
+
+        handler = Mockito.mock(SolicitudHandler.class);
+        errorHandler = Mockito.mock(GlobalErrorHandler.class);
+        solicitudPath = Mockito.mock(SolicitudPath.class);
+
+        when(solicitudPath.getBase()).thenReturn("/api/v1/solicitud");
+
+        when(errorHandler.filter()).thenReturn((request, next) -> next.handle(request));
+
+
+        SolicitudRouterRest routerRest = new SolicitudRouterRest();
+        RouterFunction<ServerResponse> routerFunction =
+                routerRest.routerFunction(handler, errorHandler, solicitudPath);
+
+        this.webTestClient = WebTestClient.bindToRouterFunction(routerFunction).build();
     }
 
     @Test
-    void testListenGETOtherUseCase() {
+    void testGETBase() {
+        when(handler.findAll(any()))
+                .thenReturn(Mono.just(ServerResponse.ok().bodyValue("[]").block()));
+
         webTestClient.get()
-                .uri("/api/otherusercase/path")
-                .accept(MediaType.APPLICATION_JSON)
+                .uri("/api/v1/solicitud")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(String.class)
-                .value(userResponse -> {
-                            Assertions.assertThat(userResponse).isEmpty();
-                        }
-                );
+                .isEqualTo("[]");
     }
 
     @Test
-    void testListenPOSTUseCase() {
+    void testPOSTBase() {
+
+        when(handler.createSolicitud(any()))
+                .thenReturn(Mono.just(ServerResponse.status(HttpStatus.OK).build().block()));
         webTestClient.post()
-                .uri("/api/usecase/otherpath")
-                .accept(MediaType.APPLICATION_JSON)
-                .bodyValue("")
+                .uri("/api/v1/solicitud")
+                .bodyValue("{}")
                 .exchange()
-                .expectStatus().isOk()
-                .expectBody(String.class)
-                .value(userResponse -> {
-                            Assertions.assertThat(userResponse).isEmpty();
-                        }
-                );
+                .expectStatus().isOk();
     }
 }
+
+

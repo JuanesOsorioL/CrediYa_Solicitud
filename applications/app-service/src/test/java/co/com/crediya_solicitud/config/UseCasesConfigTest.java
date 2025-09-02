@@ -7,6 +7,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import static org.mockito.Mockito.mock;
+
 public class UseCasesConfigTest {
 
     @Test
@@ -34,6 +36,28 @@ public class UseCasesConfigTest {
         public MyUseCase myUseCase() {
             return new MyUseCase();
         }
+
+        @Bean
+        co.com.crediya_solicitud.model.loantypes.gateways.LoanTypesRepository loanTypesRepository() {
+            return mock(co.com.crediya_solicitud.model.loantypes.gateways.LoanTypesRepository.class);
+        }
+
+        @Bean
+        co.com.crediya_solicitud.model.solicitud.gateways.SolicitudRepository solicitudRepository() {
+            return mock(co.com.crediya_solicitud.model.solicitud.gateways.SolicitudRepository.class);
+        }
+
+        @Bean
+        co.com.crediya_solicitud.model.logger.Logger logger() {
+            return mock(co.com.crediya_solicitud.model.logger.Logger.class);
+        }
+
+        @Bean
+        co.com.crediya_solicitud.model.UserGateway userGateway() {
+            return mock(co.com.crediya_solicitud.model.UserGateway.class);
+        }
+
+
     }
 
     static class MyUseCase {

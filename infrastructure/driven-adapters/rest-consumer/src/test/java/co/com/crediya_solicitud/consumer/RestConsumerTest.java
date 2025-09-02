@@ -1,17 +1,20 @@
 package co.com.crediya_solicitud.consumer;
 
 
+import co.com.crediya_solicitud.model.logger.Logger;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.test.StepVerifier;
+
 import java.io.IOException;
 
 
@@ -27,42 +30,48 @@ class RestConsumerTest {
         mockBackEnd = new MockWebServer();
         mockBackEnd.start();
         var webClient = WebClient.builder().baseUrl(mockBackEnd.url("/").toString()).build();
-        restConsumer = new RestConsumer(webClient);
+
+        Logger mockLogger = Mockito.mock(Logger.class);
+
+        restConsumer = new RestConsumer(webClient, mockLogger);
+
+
     }
 
     @AfterAll
     static void tearDown() throws IOException {
-
         mockBackEnd.shutdown();
     }
 
     @Test
-    @DisplayName("Validate the function testGet.")
-    void validateTestGet() {
-
+    @DisplayName("Debe obtener el email cuando la respuesta es exitosa")
+    void validateGetUserByDocument_Success() {
         mockBackEnd.enqueue(new MockResponse()
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .setResponseCode(HttpStatus.OK.value())
-                .setBody("{\"state\" : \"ok\"}"));
-        var response = restConsumer.testGet();
+                .setBody("{\"body\":{\"email\":\"test@correo.com\"}}"));
+
+        var response = restConsumer.getUserEmailByDocument("123");
 
         StepVerifier.create(response)
-                .expectNextMatches(objectResponse -> objectResponse.getState().equals("ok"))
+                .expectNext("test@correo.com")
                 .verifyComplete();
     }
 
     @Test
-    @DisplayName("Validate the function testPost.")
-    void validateTestPost() {
-
+    @DisplayName("Debe lanzar ExternalServiceException en error 500")
+    void validateGetUserByDocument_Error() {
         mockBackEnd.enqueue(new MockResponse()
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .setResponseCode(HttpStatus.OK.value())
-                .setBody("{\"state\" : \"ok\"}"));
-        var response = restConsumer.testPost();
+                .setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .setBody("{\"status\":500, \"message\":\"Error interno\", \"body\":[\"fallo\"]}"));
+
+        var response = restConsumer.getUserEmailByDocument("123");
 
         StepVerifier.create(response)
-                .expectNextMatches(objectResponse -> objectResponse.getState().equals("ok"))
-                .verifyComplete();
+                .expectErrorMatches(ex -> ex instanceof co.com.crediya_solicitud.model.exception.ExternalServiceException
+                        && ((co.com.crediya_solicitud.model.exception.ExternalServiceException) ex).getStatus() == 500
+                        && ex.getMessage().contains("Error interno"))
+                .verify();
     }
 }

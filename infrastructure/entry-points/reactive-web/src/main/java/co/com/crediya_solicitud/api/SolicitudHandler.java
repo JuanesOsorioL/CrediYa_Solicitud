@@ -5,10 +5,10 @@ import co.com.crediya_solicitud.api.logger.GlobalLogger;
 import co.com.crediya_solicitud.api.mapper.SolicitudDtoMapper;
 import co.com.crediya_solicitud.api.utils.ApiResponseBuilder;
 import co.com.crediya_solicitud.model.UserGateway;
-import co.com.crediya_solicitud.model.solicitud.Solicitud;
-import co.com.crediya_solicitud.usecase.solicitud.SolicitudService;
 import co.com.crediya_solicitud.model.error.SolicitudErrorCode;
+import co.com.crediya_solicitud.model.solicitud.Solicitud;
 import co.com.crediya_solicitud.usecase.exception.SolicitudValidationException;
+import co.com.crediya_solicitud.usecase.solicitud.SolicitudService;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,7 +18,6 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 @Component
@@ -49,7 +48,7 @@ public class SolicitudHandler {
 
                     if (!infraErrors.isEmpty()) {
                         logger.error("Errores infraestructurales detectados");
-                        return Mono.error(new SolicitudValidationException(infraErrors, List.of(),null));
+                        return Mono.error(new SolicitudValidationException(infraErrors, List.of(), null));
                     }
 
                     Solicitud solicitud = solicitudDtoMapper.toSolicitud(dto);
