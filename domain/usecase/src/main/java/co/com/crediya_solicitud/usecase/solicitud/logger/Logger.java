@@ -5,5 +5,7 @@ public interface Logger {
 
     void warn(String message);
 
+    void warnTwo(String message, String body);
+
     void error(String message, Throwable exception);
 }

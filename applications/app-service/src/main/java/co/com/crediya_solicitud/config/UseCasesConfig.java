@@ -1,5 +1,6 @@
 package co.com.crediya_solicitud.config;
 
+import co.com.crediya_solicitud.model.UserGateway;
 import co.com.crediya_solicitud.model.solicitud.gateways.SolicitudRepository;
 import co.com.crediya_solicitud.usecase.loantypes.LoanTypesUseCase;
 import co.com.crediya_solicitud.usecase.solicitud.SolicitudUseCase;
@@ -15,8 +16,8 @@ import org.springframework.context.annotation.*;
 public class UseCasesConfig {
         @Bean
         @Primary
-        public SolicitudUseCase solicitudUseCase(SolicitudRepository solicitudRepository, LoanTypesUseCase loanTypesUseCase, Logger logger) {
-                return new SolicitudUseCase(solicitudRepository,loanTypesUseCase, logger);
+        public SolicitudUseCase solicitudUseCase(SolicitudRepository solicitudRepository, LoanTypesUseCase loanTypesUseCase, Logger logger, UserGateway userGateway) {
+                return new SolicitudUseCase(solicitudRepository,loanTypesUseCase, logger,userGateway);
         }
 
 }

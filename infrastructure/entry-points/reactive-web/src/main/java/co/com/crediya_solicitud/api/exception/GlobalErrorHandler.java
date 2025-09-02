@@ -1,7 +1,6 @@
 package co.com.crediya_solicitud.api.exception;
 
 
-
 import co.com.crediya_solicitud.api.logger.GlobalLogger;
 import co.com.crediya_solicitud.api.utils.ApiResponseBuilder;
 import co.com.crediya_solicitud.usecase.solicitud.exception.SolicitudErrorCode;
@@ -30,16 +29,21 @@ public class GlobalErrorHandler {
         return (request, next) -> next.handle(request)
                 .onErrorResume(SolicitudValidationException.class, ex -> {
                     logger.warn("Errores de UserValidationException");
+
+                    Stream<String> validationStream = Stream.concat(
+                            ex.getInfraErrors().stream().map(SolicitudErrorCode::getMessage),
+                            ex.getDomainErrors().stream().map(SolicitudErrorCode::getMessage)
+                    );
+
+                    Stream<String> externalStream = ex.getMicroAuth().stream();
+                    List<String> errors = Stream.concat(validationStream, externalStream)
+                            .distinct()
+                            .toList();
+
                     return apiResponseBuilder.build(
                             HttpStatus.BAD_REQUEST,
                             "Errores de validación",
-
-                            Stream.concat(
-                                            ex.getInfraErrors().stream(),
-                                            ex.getDomainErrors().stream())
-                                    .map(SolicitudErrorCode::getMessage)
-                                    .distinct()
-                                    .toList()
+                            errors
                     );
                 })
                 .onErrorResume(Exception.class, ex -> {

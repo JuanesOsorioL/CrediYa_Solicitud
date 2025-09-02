@@ -1,6 +1,5 @@
 package co.com.crediya_solicitud.api.dto;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -17,8 +16,6 @@ public record SolicitudDto(
         @NotNull(message = "USR_002")
         int term,
 
-        @NotBlank(message = "USR_006")
-        @Email(message = "USR_003")
         String email,
 
         @NotBlank(message = "USR_004")

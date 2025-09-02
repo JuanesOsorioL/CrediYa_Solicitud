@@ -1,9 +1,10 @@
 package co.com.crediya_solicitud.api;
 
 import co.com.crediya_solicitud.api.dto.SolicitudDto;
-import co.com.crediya_solicitud.api.utils.ApiResponseBuilder;
 import co.com.crediya_solicitud.api.logger.GlobalLogger;
 import co.com.crediya_solicitud.api.mapper.SolicitudDtoMapper;
+import co.com.crediya_solicitud.api.utils.ApiResponseBuilder;
+import co.com.crediya_solicitud.model.UserGateway;
 import co.com.crediya_solicitud.model.solicitud.Solicitud;
 import co.com.crediya_solicitud.usecase.solicitud.SolicitudService;
 import co.com.crediya_solicitud.usecase.solicitud.exception.SolicitudErrorCode;
@@ -29,6 +30,7 @@ public class SolicitudHandler {
     private final SolicitudDtoMapper solicitudDtoMapper;
     private final Validator validator;
     private final GlobalLogger logger;
+    private final UserGateway userGateway;
 
     private static final Map<String, SolicitudErrorCode> CODE_TO_ERROR_MAP = Map.of(
             "USR_001", SolicitudErrorCode.DOCUMENT_EMPTY,
@@ -46,11 +48,8 @@ public class SolicitudHandler {
         return CODE_TO_ERROR_MAP.get(code);
     }
 
-
     public Mono<ServerResponse> createSolicitud(ServerRequest request) {
         return request.bodyToMono(SolicitudDto.class)
-                .doOnSubscribe(sub -> logger.info("Nueva petición para crear solicitud"))
-                .doOnNext(dto -> logger.info("DTO recibido"))
                 .flatMap(dto -> {
                     List<SolicitudErrorCode> infraErrors = validator.validate(dto).stream()
                             .map(v -> mapMessageToErrorCode(v.getMessage()))
@@ -59,32 +58,28 @@ public class SolicitudHandler {
                             .toList();
 
                     if (!infraErrors.isEmpty()) {
-                        logger.warn("Validación infra fallida -> errores");
-                        return Mono.error(new SolicitudValidationException(infraErrors, List.of()));
+                        return Mono.error(new SolicitudValidationException(infraErrors, List.of(),null));
                     }
-
-                    /// /
                     Solicitud solicitud = solicitudDtoMapper.toSolicitud(dto);
-                    logger.info("Validaciones correctas, transformado a dominio");
                     return solicitudService.createSolicitud(solicitud)
-                            .doOnSubscribe(sub -> logger.info("Invocando UserService.createUser"))
-                            .doOnNext(u -> logger.info("Solicitud persistida"))
-                            .map(solicitudDtoMapper::toDto);
-                })
-                .doOnSuccess(dto -> logger.info("Solicitud creada exitosamente"))
-                .flatMap(userDto -> apiResponseBuilder.build(HttpStatus.CREATED, "Solicitud creado exitosamente", userDto));
+                            .map(solicitudDtoMapper::toDto)
+                            .flatMap(s -> apiResponseBuilder.build(
+                                    HttpStatus.CREATED,
+                                    "Solicitud creada exitosamente",
+                                    s
+                            ));
+                });
     }
-/*
+
     public Mono<ServerResponse> findAll(ServerRequest serverRequest) {
-        return userService.getAllUsers()
+        return solicitudService.getAllSolicitud()
                 .doOnSubscribe(sub -> logger.info("findAll suscrito"))
-                .doOnNext(u -> logger.info("Se retornan todos los Usuarios"))
-                .map(userDtoMapper::toDto)
+                .doOnNext(u -> logger.info("Se retornan todas las solicitudes"))
+                .map(solicitudDtoMapper::toSolicitud)
                 .doOnNext(u -> logger.info("Se convierten a DTO"))
                 .collectList()
                 .doOnNext(u -> logger.info("Se agrupan en una Lista"))
-                .flatMap(list -> apiResponseBuilder.build(HttpStatus.OK, "Usuarios recuperados exitosamente", list))
-                .onErrorResume(e -> apiResponseBuilder.build(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno", List.of("Error al recuperar usuarios")));
-    }*/
-
+                .flatMap(list -> apiResponseBuilder.build(HttpStatus.OK, "Solicitudes recuperadas exitosamente", list))
+                .onErrorResume(e -> apiResponseBuilder.build(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno", List.of("Error al recuperar Solicitudes")));
+    }
 }

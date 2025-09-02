@@ -1,5 +1,7 @@
 package co.com.crediya_solicitud.usecase.solicitud;
 
+import co.com.crediya_solicitud.model.UserGateway;
+import co.com.crediya_solicitud.model.exception.ExternalServiceException;
 import co.com.crediya_solicitud.model.solicitud.Solicitud;
 import co.com.crediya_solicitud.model.solicitud.gateways.SolicitudRepository;
 import co.com.crediya_solicitud.usecase.loantypes.LoanTypesUseCase;
@@ -19,27 +21,40 @@ public class SolicitudUseCase implements SolicitudService {
     private final SolicitudRepository solicitudRepository;
     private final LoanTypesUseCase loanTypesUseCase;
     private final Logger logger;
+    private final UserGateway userGateway;
 
 
     @Override
     public Mono<Solicitud> createSolicitud(Solicitud solicitud) {
-        return loanTypesUseCase.existIdTypeLoan(solicitud.getLoanTypeId())
-                .flatMap(exists -> {
-                    if (!exists) {
-                        logger.info("Tipo prestamo si existe");
 
-                        return Mono.error(new SolicitudValidationException(List.of(), List.of(SolicitudErrorCode.LOAN_TYPE_NOT_REGISTERED)));
-                    }
-                    logger.info("El Tipo prestamo ingresado No existe, se agrega un UUID para guardarlo");
-                    Solicitud withId = solicitud.toBuilder()
-                          .solicitud_id(UUID.randomUUID().toString())
-                            .state_id("estado-001")
-                            .build();
-                    return solicitudRepository.save(withId)
-                    .doOnNext(u -> logger.info("Solicitud guardada con id "));
+        return userGateway.getUserEmailByDocument(solicitud.getDocument_id())
+                .onErrorMap(ExternalServiceException.class, ex ->
+                        new SolicitudValidationException(
+                                List.of(),
+                                List.of(SolicitudErrorCode.AUTH),
+                                ex.getBody())
+                )
+                .flatMap(email -> {
+                    Solicitud enriched = solicitud.toBuilder().email(email).build();
+                    return loanTypesUseCase.existIdTypeLoan(enriched.getLoanTypeId())
+                            .flatMap(exists -> {
+                                if (!exists) {
+                                    return Mono.error(new SolicitudValidationException(
+                                            List.of(), List.of(SolicitudErrorCode.LOAN_TYPE_NOT_REGISTERED), null
+                                    ));
+                                }
+                                Solicitud withId = enriched.toBuilder()
+                                        .solicitud_id(UUID.randomUUID().toString())
+                                        .state_id("estado-001")
+                                        .build();
+                                return solicitudRepository.save(withId).map(saved -> saved.toBuilder()
+                                        .document_id(solicitud.getDocument_id())
+                                        .build()
+                                );
+                            });
                 });
-    }
 
+    }
     @Override
     public Flux<Solicitud> getAllSolicitud() {
         return solicitudRepository.findAll()

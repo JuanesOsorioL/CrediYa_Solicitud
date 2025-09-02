@@ -17,4 +17,5 @@ public class Solicitud {
     private String email;
     private String state_id;
     private String loanTypeId;
+    private String document_id;
 }

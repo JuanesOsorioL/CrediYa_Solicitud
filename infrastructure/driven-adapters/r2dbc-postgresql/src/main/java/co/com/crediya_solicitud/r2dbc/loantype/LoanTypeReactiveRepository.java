@@ -11,6 +11,4 @@ public interface LoanTypeReactiveRepository
 
     Mono<Boolean> existsByLoanTypeId(String loanTypeId);
 
-   // Mono<Boolean> existsByLoan_type_id(String loan_type_id);
-
 }

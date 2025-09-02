@@ -21,6 +21,11 @@ public class GlobalLogger implements Logger {
     }
 
     @Override
+    public void warnTwo(String message, String body) {
+        logger.warn(message,body);
+    }
+
+    @Override
     public void error(String message, Throwable exception) {
         logger.error(message, exception);
     }

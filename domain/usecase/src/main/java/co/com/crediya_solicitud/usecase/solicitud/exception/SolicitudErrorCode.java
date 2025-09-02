@@ -12,6 +12,7 @@ public enum SolicitudErrorCode {
     TERM_EMPTY("USR_002", "El plazo no puede ser vacío"),
     ID_LOAN_TYPE_EMPTY("USR_008", "El ID tipo estado no puede estar vacio"),
     ID_STATE_EMPTY("USR_004", "El ID estado no puede estar vacio"),
+    AUTH("USR_009","Error en el micro de Auth"),
     LOAN_TYPE_NOT_REGISTERED("USR_005", "El tipo de prestamo no está registrado");
 
 

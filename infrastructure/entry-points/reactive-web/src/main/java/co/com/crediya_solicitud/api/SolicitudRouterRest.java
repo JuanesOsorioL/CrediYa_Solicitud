@@ -17,6 +17,7 @@ public class SolicitudRouterRest {
     public RouterFunction<ServerResponse> routerFunction(SolicitudHandler handler, GlobalErrorHandler errorHandler, SolicitudPath solicitudPath) {
         return route()
                 .POST(solicitudPath.getBase(), handler::createSolicitud, SolicitudOpenApi::createSolicitud)
+                .GET(solicitudPath.getBase(), handler::findAll, SolicitudOpenApi::createSolicitud)
                 .build()
                 .filter(errorHandler.filter());
     }
