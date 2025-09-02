@@ -1,4 +1,4 @@
-package co.com.crediya_solicitud.usecase.solicitud.exception;
+package co.com.crediya_solicitud.usecase.exception;
 
 import lombok.Getter;
 

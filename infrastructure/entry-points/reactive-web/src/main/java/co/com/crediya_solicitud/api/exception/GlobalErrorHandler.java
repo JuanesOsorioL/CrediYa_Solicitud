@@ -3,8 +3,8 @@ package co.com.crediya_solicitud.api.exception;
 
 import co.com.crediya_solicitud.api.logger.GlobalLogger;
 import co.com.crediya_solicitud.api.utils.ApiResponseBuilder;
-import co.com.crediya_solicitud.usecase.solicitud.exception.SolicitudErrorCode;
-import co.com.crediya_solicitud.usecase.solicitud.exception.SolicitudValidationException;
+import co.com.crediya_solicitud.usecase.exception.SolicitudErrorCode;
+import co.com.crediya_solicitud.usecase.exception.SolicitudValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.HandlerFilterFunction;

@@ -4,9 +4,9 @@ import co.com.crediya_solicitud.model.UserGateway;
 import co.com.crediya_solicitud.model.exception.ExternalServiceException;
 import co.com.crediya_solicitud.model.solicitud.Solicitud;
 import co.com.crediya_solicitud.model.solicitud.gateways.SolicitudRepository;
+import co.com.crediya_solicitud.usecase.exception.SolicitudErrorCode;
+import co.com.crediya_solicitud.usecase.exception.SolicitudValidationException;
 import co.com.crediya_solicitud.usecase.loantypes.LoanTypesUseCase;
-import co.com.crediya_solicitud.usecase.solicitud.exception.SolicitudErrorCode;
-import co.com.crediya_solicitud.usecase.solicitud.exception.SolicitudValidationException;
 import co.com.crediya_solicitud.usecase.solicitud.logger.Logger;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -36,13 +36,8 @@ public class SolicitudUseCase implements SolicitudService {
                 )
                 .flatMap(email -> {
                     Solicitud enriched = solicitud.toBuilder().email(email).build();
-                    return loanTypesUseCase.existIdTypeLoan(enriched.getLoanTypeId())
+                    return loanTypesUseCase.findByLoanTypeAndValidateAmount(enriched.getLoanTypeId(), enriched.getAmount())
                             .flatMap(exists -> {
-                                if (!exists) {
-                                    return Mono.error(new SolicitudValidationException(
-                                            List.of(), List.of(SolicitudErrorCode.LOAN_TYPE_NOT_REGISTERED), null
-                                    ));
-                                }
                                 Solicitud withId = enriched.toBuilder()
                                         .solicitud_id(UUID.randomUUID().toString())
                                         .state_id("estado-001")
@@ -55,6 +50,7 @@ public class SolicitudUseCase implements SolicitudService {
                 });
 
     }
+
     @Override
     public Flux<Solicitud> getAllSolicitud() {
         return solicitudRepository.findAll()

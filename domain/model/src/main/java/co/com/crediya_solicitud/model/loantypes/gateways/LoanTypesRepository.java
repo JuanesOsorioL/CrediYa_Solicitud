@@ -8,6 +8,6 @@ public interface LoanTypesRepository {
 
     Flux<LoanTypes> findAll();
 
-    Mono<Boolean> existsByLoanTypeId(String loanTypeId);
-
+   // Mono<Boolean> existsByLoanTypeId(String loanTypeId);
+   Mono<LoanTypes> findByloanTypeId(String loanTypeId);
 }
