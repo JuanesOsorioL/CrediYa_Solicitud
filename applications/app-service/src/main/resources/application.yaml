@@ -1,0 +1,76 @@
+server:
+  port: 8083
+adapters:
+  r2dbc:
+    host: "localhost"
+    port: 5432
+    database: "solicitud"
+    schema: "public"
+    username: "creditUserData"
+    password: "za4iLVvR8qVq4yQv"
+spring:
+  application:
+    name: "CrediYa_Solicitud"
+  devtools:
+    add-properties: false
+  h2:
+    console:
+      enabled: true
+      path: "/h2"
+  profiles:
+    include: null
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,prometheus"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+cors:
+  allowed-origins: "http://localhost:4200,http://localhost:8080"
+springdoc:
+  api-docs:
+    path: "/v3/api-docs"
+  swagger-ui:
+    path: "/swagger-ui.html"
+    enabled: true
+logging:
+  level:
+    root: "WARN"
+    co.com.crediya_solicitud.api.logger: "INFO"
+routes:
+  solicitud:
+    base: "/api/v1/solicitud"
+other:
+  microservice:
+    base-url: "/api/v1/usuarios/document"
+adapter:
+  restconsumer:
+    timeout: 5000
+    url: "http://localhost:8080"
+resilience4j:
+  circuitbreaker:
+    instances:
+      testGet:
+        registerHealthIndicator: true
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: "2s"
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        waitDurationInOpenState: "10s"
+      testPost:
+        registerHealthIndicator: true
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: "2s"
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        waitDurationInOpenState: "10s"
