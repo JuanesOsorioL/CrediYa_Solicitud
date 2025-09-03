@@ -4,7 +4,6 @@ import co.com.crediya_solicitud.api.dto.SolicitudDto;
 import co.com.crediya_solicitud.api.logger.GlobalLogger;
 import co.com.crediya_solicitud.api.mapper.SolicitudDtoMapper;
 import co.com.crediya_solicitud.api.utils.ApiResponseBuilder;
-import co.com.crediya_solicitud.model.UserGateway;
 import co.com.crediya_solicitud.model.error.SolicitudErrorCode;
 import co.com.crediya_solicitud.model.solicitud.Solicitud;
 import co.com.crediya_solicitud.usecase.exception.SolicitudValidationException;
@@ -29,7 +28,7 @@ public class SolicitudHandler {
     private final SolicitudDtoMapper solicitudDtoMapper;
     private final Validator validator;
     private final GlobalLogger logger;
-    private final UserGateway userGateway;
+
 
     private SolicitudErrorCode mapMessageToErrorCode(String code) {
         return SolicitudErrorCode.fromCode(code);

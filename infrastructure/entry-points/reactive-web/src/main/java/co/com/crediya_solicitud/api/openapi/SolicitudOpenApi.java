@@ -7,9 +7,6 @@ import org.springdoc.core.fn.builders.operation.Builder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.ErrorResponse;
-import org.springframework.web.reactive.function.server.ServerRequest;
-import org.springframework.web.reactive.function.server.ServerResponse;
-import reactor.core.publisher.Mono;
 
 import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
 import static org.springdoc.core.fn.builders.content.Builder.contentBuilder;
@@ -38,7 +35,7 @@ public class SolicitudOpenApi {
                                 .schema(schemaBuilder().implementation(ErrorResponse.class))));
     }
 
-/*
+
     public Builder findAll(Builder builder) {
         return builder
                 .operationId("findAll")
@@ -47,10 +44,10 @@ public class SolicitudOpenApi {
                 .response(responseBuilder().responseCode(String.valueOf(HttpStatus.OK.value()))
                         .description("Operación exitosa")
                         .content(contentBuilder().mediaType(MediaType.APPLICATION_JSON_VALUE)
-                                .schema(schemaBuilder().implementation(User.class))))
+                                .schema(schemaBuilder().implementation(SolicitudDto.class))))
                 .response(responseBuilder().responseCode(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()))
                         .description("Error interno")
                         .content(contentBuilder().mediaType(MediaType.APPLICATION_JSON_VALUE)
                                 .schema(schemaBuilder().implementation(ErrorResponse.class))));
-    }*/
+    }
 }

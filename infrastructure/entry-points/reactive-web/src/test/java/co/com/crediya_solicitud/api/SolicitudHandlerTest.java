@@ -51,7 +51,7 @@ class SolicitudHandlerTest {
         userGateway = mock(UserGateway.class);
 
         SolicitudHandler handler = new SolicitudHandler(
-                apiResponseBuilder, solicitudService, mapper, validator, logger, userGateway
+                apiResponseBuilder, solicitudService, mapper, validator, logger
         );
 
         RouterFunction<ServerResponse> routes = RouterFunctions.route()
@@ -77,7 +77,7 @@ class SolicitudHandlerTest {
                         apiResponseBuilder.build(HttpStatus.BAD_REQUEST, "Errores de validación", List.of("x")));
 
         RouterFunction<ServerResponse> routes = RouterFunctions.route()
-                .POST("/api/v1/solicitud", new SolicitudHandler(apiResponseBuilder, solicitudService, mapper, validator, logger, userGateway)::createSolicitud)
+                .POST("/api/v1/solicitud", new SolicitudHandler(apiResponseBuilder, solicitudService, mapper, validator, logger)::createSolicitud)
                 .build()
                 .filter(errorFilter);
 
