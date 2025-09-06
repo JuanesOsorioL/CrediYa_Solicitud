@@ -25,8 +25,8 @@ public class SolicitudUseCase implements SolicitudService {
 
 
     @Override
-    public Mono<Solicitud> createSolicitud(Solicitud solicitud) {
-        return userGateway.getUserEmailByDocument(solicitud.getDocument_id())
+    public Mono<Solicitud> createSolicitud(Solicitud solicitud, String token) {
+        return userGateway.getUserEmailByDocument(solicitud.getDocument_id(),token)
                 .doOnSubscribe(sub -> logger.info("Se inicia llamando a el Web client para validar si existe el documento"))
                 .onErrorMap(ExternalServiceException.class, ex ->
                         new SolicitudValidationException(
