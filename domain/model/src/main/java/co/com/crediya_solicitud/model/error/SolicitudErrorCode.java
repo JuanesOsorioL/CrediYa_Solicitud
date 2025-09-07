@@ -24,7 +24,6 @@ public enum SolicitudErrorCode {
     JUST_FOR_YOU("USR_018", "Solo pueda crear solicitudes de prestamo para ti mismo."),
     LOAN_TYPE_NOT_REGISTERED("USR_005", "El tipo de prestamo no está registrado");
 
-
     private final String code;
     private final String message;
 
