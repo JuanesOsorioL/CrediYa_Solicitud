@@ -5,6 +5,7 @@ import co.com.crediya_solicitud.consumer.dto.ExternalErrorResponse;
 import co.com.crediya_solicitud.consumer.dto.ExternalUserRequest;
 import co.com.crediya_solicitud.consumer.dto.ExternalUserResponse;
 import co.com.crediya_solicitud.model.ClaimsDto;
+import co.com.crediya_solicitud.model.TokenDto;
 import co.com.crediya_solicitud.model.UserGateway;
 import co.com.crediya_solicitud.model.exception.ExternalServiceException;
 import co.com.crediya_solicitud.model.logger.Logger;
@@ -21,12 +22,12 @@ public class RestConsumer implements UserGateway {
     private final Logger logger;
 
     @Override
-    public Mono<String> getUserEmailByDocument(String documentId,String token) {
+    public Mono<String> getUserEmailByDocument(String documentId,TokenDto token) {
         logger.info("Se realiza el llamado al Micro de Auth");
         return client
                 .post()
                 .uri("/v1/usuarios/document")
-                .header("Authorization","Bearer "+token)
+                .header("Authorization","Bearer "+token.token())
                 .bodyValue(new ExternalUserRequest(documentId))
                 .retrieve()
                 .onStatus(
@@ -47,12 +48,12 @@ public class RestConsumer implements UserGateway {
     }
 
     @Override
-    public Mono<ClaimsDto> validateTokenAndGetClaims(String token) {
+    public Mono<ClaimsDto> validateTokenAndGetClaims(TokenDto token) {
         logger.info("Se realiza el llamado al Micro de Auth");
         return client
                 .get()
                 .uri("/v1/validateToken")
-                .header("Authorization","Bearer "+token)
+                .header("Authorization","Bearer "+token.token())
                 .retrieve()
                 .onStatus(
                         status -> status.is4xxClientError() || status.is5xxServerError(),

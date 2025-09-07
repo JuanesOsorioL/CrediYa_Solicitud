@@ -1,5 +1,6 @@
 package co.com.crediya_solicitud.usecase.solicitud;
 
+import co.com.crediya_solicitud.model.TokenDto;
 import co.com.crediya_solicitud.model.UserGateway;
 import co.com.crediya_solicitud.model.error.SolicitudErrorCode;
 import co.com.crediya_solicitud.model.exception.ExternalServiceException;
@@ -25,7 +26,7 @@ public class SolicitudUseCase implements SolicitudService {
 
 
     @Override
-    public Mono<Solicitud> createSolicitud(Solicitud solicitud, String token) {
+    public Mono<Solicitud> createSolicitud(Solicitud solicitud, TokenDto token) {
         return userGateway.getUserEmailByDocument(solicitud.getDocument_id(),token)
                 .doOnSubscribe(sub -> logger.info("Se inicia llamando a el Web client para validar si existe el documento"))
                 .onErrorMap(ExternalServiceException.class, ex ->
