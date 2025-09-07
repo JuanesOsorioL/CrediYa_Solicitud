@@ -18,8 +18,11 @@ public enum SolicitudErrorCode {
     ID_STATE_EMPTY("USR_004", "El ID estado no puede estar vacio"),
     AUTH("USR_009","Error en el micro de Auth"),
     AMOUNT_INVALID("USR_010","El valor del monto(amount), no se encuentra entre en el rango del tipo de prestamo"),
+    TOKEN_INVALID("USR_015", "Token invalido"),
+    USER_UNAUTHORIZED("USR_016", "No tiene permisos, No eres un Cliente"),
+    CLAIMS_DOCUMENT_NULL("USR_017", "EL Claims o el Documento son nulos, verificar"),
+    JUST_FOR_YOU("USR_018", "Solo pueda crear solicitudes de prestamo para ti mismo."),
     LOAN_TYPE_NOT_REGISTERED("USR_005", "El tipo de prestamo no está registrado");
-
 
     private final String code;
     private final String message;
