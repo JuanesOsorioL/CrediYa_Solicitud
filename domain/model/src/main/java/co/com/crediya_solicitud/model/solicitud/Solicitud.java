@@ -15,7 +15,7 @@ public class Solicitud {
     private BigDecimal amount;
     private int term;
     private String email;
-    private String state_id;
+    private String stateId;
     private String loanTypeId;
-    private String document_id;
+    private String documentId;
 }

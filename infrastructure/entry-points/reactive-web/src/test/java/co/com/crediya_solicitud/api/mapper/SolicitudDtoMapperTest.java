@@ -19,10 +19,10 @@ class SolicitudDtoMapperTest {
         Solicitud source = Solicitud.builder()
                 .solicitud_id("sol-123")
                 .amount(BigDecimal.TEN)
-                .document_id("123456789")
+                .documentId("123456789")
                 .term(12)
                 .email("mail@test.com")
-                .state_id("estado-001")
+                .stateId("estado-001")
                 .loanTypeId("loan-type-01")
                 .build();
 
@@ -53,10 +53,10 @@ class SolicitudDtoMapperTest {
 
         assertThat(target.getSolicitud_id()).isEqualTo("sol-456");
         assertThat(target.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(25));
-        assertThat(target.getDocument_id()).isEqualTo("ABC123");
+        assertThat(target.getDocumentId()).isEqualTo("ABC123");
         assertThat(target.getTerm()).isEqualTo(24);
         assertThat(target.getEmail()).isEqualTo("user@test.com");
-        assertThat(target.getState_id()).isEqualTo("estado-002");
+        assertThat(target.getStateId()).isEqualTo("estado-002");
         assertThat(target.getLoanTypeId()).isEqualTo("loan-type-02");
     }
 
@@ -67,7 +67,7 @@ class SolicitudDtoMapperTest {
                 .amount(BigDecimal.valueOf(99))
                 .term(36)
                 .email("x@y.com")
-                .state_id("estado-003")
+                .stateId("estado-003")
                 .loanTypeId("loan-type-03")
                 .build();
 

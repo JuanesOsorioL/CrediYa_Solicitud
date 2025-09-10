@@ -55,8 +55,8 @@ class LoanTypesUseCaseTest {
 
         LoanTypes loanType = mock(LoanTypes.class);
         when(loanType.isValidAmount(amount)).thenReturn(false);
-        when(loanType.getMinimum_amount()).thenReturn(new BigDecimal("10000"));
-        when(loanType.getMaximum_amount()).thenReturn(new BigDecimal("50000"));
+        when(loanType.getMinimumAmount()).thenReturn(new BigDecimal("10000"));
+        when(loanType.getMaximumAmount()).thenReturn(new BigDecimal("50000"));
         when(repository.findByloanTypeId(loanTypeId)).thenReturn(Mono.just(loanType));
 
         Mono<LoanTypes> result = useCase.findByLoanTypeAndValidateAmount(loanTypeId, amount);
@@ -72,7 +72,7 @@ class LoanTypesUseCaseTest {
         verify(repository).findByloanTypeId(loanTypeId);
         verify(logger).info("Se consulta si el tipo de prestamo existe en BD");
         verify(logger).warn("El monto " + amount + " no cumple el rango permitido [" +
-                loanType.getMinimum_amount() + " - " + loanType.getMaximum_amount() + "]");
+                loanType.getMinimumAmount() + " - " + loanType.getMaximumAmount() + "]");
     }
 
     @Test

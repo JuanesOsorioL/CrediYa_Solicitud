@@ -1,5 +1,6 @@
 package co.com.crediya_solicitud.config;
 
+import co.com.crediya_solicitud.model.solicitud.gateways.UserGateway;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -53,8 +54,8 @@ public class UseCasesConfigTest {
         }
 
         @Bean
-        co.com.crediya_solicitud.model.UserGateway userGateway() {
-            return mock(co.com.crediya_solicitud.model.UserGateway.class);
+        UserGateway userGateway() {
+            return mock(UserGateway.class);
         }
 
 

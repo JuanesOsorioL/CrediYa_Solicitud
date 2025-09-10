@@ -1,6 +1,6 @@
-package co.com.crediya_solicitud.model;
+package co.com.crediya_solicitud.model.claims;
 
-public record ClaimsDto
+public record Claims
         (
                 String FistName,
                 String sub,

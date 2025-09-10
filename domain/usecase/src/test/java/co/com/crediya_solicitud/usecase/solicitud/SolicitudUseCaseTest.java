@@ -1,6 +1,6 @@
 package co.com.crediya_solicitud.usecase.solicitud;
 
-import co.com.crediya_solicitud.model.UserGateway;
+import co.com.crediya_solicitud.model.solicitud.gateways.UserGateway;
 import co.com.crediya_solicitud.model.error.SolicitudErrorCode;
 import co.com.crediya_solicitud.model.exception.ExternalServiceException;
 import co.com.crediya_solicitud.model.loantypes.LoanTypes;
@@ -44,12 +44,12 @@ class SolicitudUseCaseTest {
     void createSolicitud_success_flow_persists_and_returns_saved_with_original_document() {
         Solicitud input = Solicitud.builder()
                 .solicitud_id(null)
-                .document_id("DOC-1")
+                .documentId("DOC-1")
                 .amount(BigDecimal.valueOf(20000))
                 .loanTypeId("LT-1")
                 .email(null)
                 .term(12)
-                .state_id(null)
+                .stateId(null)
                 .build();
 
         when(userGateway.getUserEmailByDocument("DOC-1")).thenReturn(Mono.just("user@mail.com"));
@@ -67,8 +67,8 @@ class SolicitudUseCaseTest {
         StepVerifier.create(result)
                 .assertNext(saved -> {
                     assertThat(saved.getSolicitud_id()).isNotBlank();
-                    assertThat(saved.getState_id()).isEqualTo("estado-001");
-                    assertThat(saved.getDocument_id()).isEqualTo("DOC-1");
+                    assertThat(saved.getStateId()).isEqualTo("estado-001");
+                    assertThat(saved.getDocumentId()).isEqualTo("DOC-1");
                     assertThat(saved.getEmail()).isEqualTo("user@mail.com");
                 })
                 .verifyComplete();
@@ -81,7 +81,7 @@ class SolicitudUseCaseTest {
     @Test
     void createSolicitud_maps_external_service_exception_to_validation_AUTH() {
         Solicitud input = Solicitud.builder()
-                .document_id("DOC-2")
+                .documentId("DOC-2")
                 .amount(BigDecimal.valueOf(15000))
                 .loanTypeId("LT-2")
                 .build();
@@ -110,7 +110,7 @@ class SolicitudUseCaseTest {
     @Test
     void createSolicitud_propagates_validation_error_from_loanTypesUseCase() {
         Solicitud input = Solicitud.builder()
-                .document_id("DOC-3")
+                .documentId("DOC-3")
                 .amount(BigDecimal.valueOf(9000))
                 .loanTypeId("LT-3")
                 .build();

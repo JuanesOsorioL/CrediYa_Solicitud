@@ -15,8 +15,8 @@ class LoanTypesTest {
         LoanTypes loanType = LoanTypes.builder()
                 .loanTypeId("1")
                 .name("Personal Loan")
-                .minimum_amount(BigDecimal.valueOf(1000))
-                .maximum_amount(BigDecimal.valueOf(5000))
+                .minimumAmount(BigDecimal.valueOf(1000))
+                .maximumAmount(BigDecimal.valueOf(5000))
                 .interest_rate(0.05)
                 .automatic_validation(true)
                 .build();
@@ -30,8 +30,8 @@ class LoanTypesTest {
     @DisplayName("Debe retornar true cuando el monto es exactamente igual al mínimo")
     void shouldReturnTrueWhenAmountEqualsMinimum() {
         LoanTypes loanType = LoanTypes.builder()
-                .minimum_amount(BigDecimal.valueOf(1000))
-                .maximum_amount(BigDecimal.valueOf(5000))
+                .minimumAmount(BigDecimal.valueOf(1000))
+                .maximumAmount(BigDecimal.valueOf(5000))
                 .build();
 
         boolean result = loanType.isValidAmount(BigDecimal.valueOf(1000));
@@ -43,8 +43,8 @@ class LoanTypesTest {
     @DisplayName("Debe retornar true cuando el monto es exactamente igual al máximo")
     void shouldReturnTrueWhenAmountEqualsMaximum() {
         LoanTypes loanType = LoanTypes.builder()
-                .minimum_amount(BigDecimal.valueOf(1000))
-                .maximum_amount(BigDecimal.valueOf(5000))
+                .minimumAmount(BigDecimal.valueOf(1000))
+                .maximumAmount(BigDecimal.valueOf(5000))
                 .build();
 
         boolean result = loanType.isValidAmount(BigDecimal.valueOf(5000));
@@ -56,8 +56,8 @@ class LoanTypesTest {
     @DisplayName("Debe retornar false cuando el monto es menor que el mínimo")
     void shouldReturnFalseWhenAmountIsLessThanMinimum() {
         LoanTypes loanType = LoanTypes.builder()
-                .minimum_amount(BigDecimal.valueOf(1000))
-                .maximum_amount(BigDecimal.valueOf(5000))
+                .minimumAmount(BigDecimal.valueOf(1000))
+                .maximumAmount(BigDecimal.valueOf(5000))
                 .build();
 
         boolean result = loanType.isValidAmount(BigDecimal.valueOf(999));
@@ -69,8 +69,8 @@ class LoanTypesTest {
     @DisplayName("Debe retornar false cuando el monto es mayor que el máximo")
     void shouldReturnFalseWhenAmountIsGreaterThanMaximum() {
         LoanTypes loanType = LoanTypes.builder()
-                .minimum_amount(BigDecimal.valueOf(1000))
-                .maximum_amount(BigDecimal.valueOf(5000))
+                .minimumAmount(BigDecimal.valueOf(1000))
+                .maximumAmount(BigDecimal.valueOf(5000))
                 .build();
 
         boolean result = loanType.isValidAmount(BigDecimal.valueOf(6000));

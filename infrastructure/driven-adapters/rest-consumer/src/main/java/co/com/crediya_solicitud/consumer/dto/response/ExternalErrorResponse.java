@@ -1,4 +1,4 @@
-package co.com.crediya_solicitud.consumer.dto;
+package co.com.crediya_solicitud.consumer.dto.response;
 
 import lombok.Getter;
 

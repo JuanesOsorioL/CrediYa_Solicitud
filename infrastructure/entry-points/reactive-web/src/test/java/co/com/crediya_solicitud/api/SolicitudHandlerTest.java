@@ -5,7 +5,7 @@ import co.com.crediya_solicitud.api.dto.SolicitudResponseDto;
 import co.com.crediya_solicitud.api.logger.GlobalLogger;
 import co.com.crediya_solicitud.api.mapper.SolicitudDtoMapper;
 import co.com.crediya_solicitud.api.utils.ApiResponseBuilder;
-import co.com.crediya_solicitud.model.UserGateway;
+import co.com.crediya_solicitud.model.solicitud.gateways.UserGateway;
 import co.com.crediya_solicitud.model.solicitud.Solicitud;
 import co.com.crediya_solicitud.usecase.exception.SolicitudValidationException;
 import co.com.crediya_solicitud.usecase.solicitud.SolicitudService;
@@ -100,8 +100,8 @@ class SolicitudHandlerTest {
                 "sol-1", BigDecimal.TEN, "DOC-1", 12, "mail@test.com", "estado-001", "loan-1"
         );
         Solicitud domain = Solicitud.builder()
-                .solicitud_id("sol-1").amount(BigDecimal.TEN).document_id("DOC-1")
-                .term(12).email("mail@test.com").state_id("estado-001").loanTypeId("loan-1")
+                .solicitud_id("sol-1").amount(BigDecimal.TEN).documentId("DOC-1")
+                .term(12).email("mail@test.com").stateId("estado-001").loanTypeId("loan-1")
                 .build();
 
         when(validator.validate(any(SolicitudDto.class))).thenReturn(Set.of());

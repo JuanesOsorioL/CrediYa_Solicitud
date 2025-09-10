@@ -4,10 +4,12 @@ import co.com.crediya_solicitud.api.dto.SolicitudDto;
 import co.com.crediya_solicitud.api.logger.GlobalLogger;
 import co.com.crediya_solicitud.api.mapper.SolicitudDtoMapper;
 import co.com.crediya_solicitud.api.utils.ApiResponseBuilder;
-import co.com.crediya_solicitud.model.TokenDto;
-import co.com.crediya_solicitud.model.UserGateway;
+import co.com.crediya_solicitud.api.utils.ValidateResponseToken;
 import co.com.crediya_solicitud.model.error.SolicitudErrorCode;
+import co.com.crediya_solicitud.model.exception.ExternalServiceException;
+import co.com.crediya_solicitud.model.sharedToken.AuthContext;
 import co.com.crediya_solicitud.model.solicitud.Solicitud;
+import co.com.crediya_solicitud.model.solicitud.gateways.UserGateway;
 import co.com.crediya_solicitud.usecase.exception.SolicitudValidationException;
 import co.com.crediya_solicitud.usecase.solicitud.SolicitudService;
 import jakarta.validation.Validator;
@@ -34,11 +36,9 @@ public class SolicitudHandler {
     private final UserGateway userGateway;
     private final ValidateResponseToken validateResponseToken;
 
-
     private SolicitudErrorCode mapMessageToErrorCode(String code) {
         return SolicitudErrorCode.fromCode(code);
     }
-
 
     public Mono<ServerResponse> createSolicitud(ServerRequest request) {
         logger.info("SolicitudHandler -> createSolicitud : inicia el flujo.");
@@ -53,13 +53,15 @@ public class SolicitudHandler {
             return apiResponseBuilder.build(HttpStatus.UNAUTHORIZED, "Token no proporcionado", null);
         }
 
-        String tokenSinBearer = header.replace("Bearer ", "").trim();
-        TokenDto tokenDto = new TokenDto(tokenSinBearer);
+        String token = header.replace("Bearer ", "").trim();
+
 
         logger.info("SolicitudHandler -> createSolicitud : Token proporcionado, se procede a validar el token");
-        return userGateway.validateTokenAndGetClaims(tokenDto)
+        return userGateway.validateTokenAndGetClaims(token)
                 .flatMap(validateResponseToken::validate)
                 .doOnNext(claimsDto -> logger.info("SolicitudHandler -> createSolicitud : Token válido"))
+                .flatMap(validateResponseToken::isCustomer)
+                .doOnNext(claimsDto -> logger.info("SolicitudHandler -> createSolicitud : es un Custumer(cliente)"))
                 .flatMap(claimsDto ->
                         request.bodyToMono(SolicitudDto.class)
                                 .doOnNext(sub -> logger.info("SolicitudHandler -> createSolicitud : Nueva petición para crear solicitud, Dto recibido."))
@@ -81,8 +83,9 @@ public class SolicitudHandler {
 
                     Solicitud solicitud = solicitudDtoMapper.toSolicitud(solicitudDto);
                     logger.info("SolicitudHandler -> createSolicitud : Validaciones correctas, transformado a dominio");
-                    return solicitudService.createSolicitud(solicitud, tokenDto)
+                    return solicitudService.createSolicitud(solicitud)
                             .doOnNext(sub -> logger.info("SolicitudHandler -> createSolicitud : Invocando a solicitudService.createSolicitud"))
+                            .contextWrite(ctx -> ctx.put("authToken", token))
                             .map(solicitudDtoMapper::toDto);
                 }).flatMap(responseSolicitudDto -> apiResponseBuilder.build(
                         HttpStatus.CREATED,
@@ -91,18 +94,40 @@ public class SolicitudHandler {
                 )).doOnSuccess(dto -> logger.info("SolicitudHandler -> createSolicitud : Usuario creado exitosamente"));
     }
 
+    public Mono<ServerResponse> findAll(ServerRequest request) {
+        logger.info("SolicitudHandler -> findAll : inicia el flujo. correlationId= " + request.exchange().getRequest().getId() + " ");
 
-    public Mono<ServerResponse> findAll(ServerRequest serverRequest) {
-        return solicitudService.getAllSolicitud()
-                .doOnSubscribe(sub -> logger.info("findAll suscrito"))
-                .doOnNext(u -> logger.info("Se retornan todas las solicitudes"))
-                .map(solicitudDtoMapper::toSolicitud)
-                .doOnNext(u -> logger.info("Se convierten a DTO"))
+        String auth = request.headers().firstHeader("Authorization");
+        if (auth == null || !auth.startsWith("Bearer ") || auth.length() == 7) {
+            logger.info("SolicitudHandler -> findAll : Token no proporcionado");
+            return apiResponseBuilder.build(HttpStatus.UNAUTHORIZED, "Token no proporcionado", null);
+        }
+        String rawToken = auth.substring(7).trim();
+
+        return userGateway.validateTokenAndGetClaims(rawToken)
+                .doOnSubscribe(s -> logger.info("SolicitudHandler -> findAll : validando token con micro Auth"))
+                .onErrorMap(ExternalServiceException.class, ex ->
+                        new SolicitudValidationException(
+                                List.of(), List.of(SolicitudErrorCode.AUTH), ex.getBody()))
+                .flatMap(validateResponseToken::validate)
+                .doOnNext(c -> logger.info("SolicitudHandler -> findAll : token válido"))
+                .flatMap(validateResponseToken::isAdviser)
+                .doOnNext(c -> logger.info("SolicitudHandler -> findAll : rol Adviser/Asesor verificado"))
+
+                .thenMany(
+                        solicitudService.getAllSolicitud()
+                                .doOnSubscribe(s -> logger.info("SolicitudHandler -> findAll : consultando solicitudes en servicio"))
+                                .contextWrite(ctx -> ctx.put(AuthContext.TOKEN_KEY, rawToken))
+
+                ).doOnNext(s -> logger.info("SolicitudHandler -> findAll : solicitud encontrada id = " + s + " "))
+                .map(solicitudDtoMapper::toSolicitudRevision)
                 .collectList()
-                .doOnNext(u -> logger.info("Se agrupan en una Lista"))
-                .flatMap(list -> apiResponseBuilder.build(HttpStatus.OK, "Solicitudes recuperadas exitosamente", list))
-                .onErrorResume(e -> apiResponseBuilder.build(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno", List.of("Error al recuperar Solicitudes")));
+                .doOnNext(r -> logger.info("SolicitudHandler -> findAll : OK, " + r.size() + " elementos"))
+                .flatMap(list -> apiResponseBuilder.build(
+                        HttpStatus.OK,
+                        "Solicitudes recuperadas exitosamente",
+                        list
+                ))
+                .doOnSuccess(r -> logger.info("SolicitudHandler -> findAll : Termina en el handler"));
     }
-
-
 }

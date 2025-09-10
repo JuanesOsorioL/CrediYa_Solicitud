@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class ExternalUserRequest {
+public class RequestDocumentId {
     private String documentId;
 }

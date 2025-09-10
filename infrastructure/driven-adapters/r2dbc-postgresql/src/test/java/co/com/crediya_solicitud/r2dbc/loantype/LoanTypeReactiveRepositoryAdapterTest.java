@@ -46,8 +46,8 @@ class LoanTypeReactiveRepositoryAdapterTest {
         LoanTypes expectedLoanType = LoanTypes.builder()
                 .loanTypeId("loan01")
                 .name("Préstamo Personal")
-                .minimum_amount(BigDecimal.valueOf(1000))
-                .maximum_amount(BigDecimal.valueOf(5000))
+                .minimumAmount(BigDecimal.valueOf(1000))
+                .maximumAmount(BigDecimal.valueOf(5000))
                 .interest_rate(0.05)
                 .automatic_validation(true)
                 .build();
@@ -66,7 +66,7 @@ class LoanTypeReactiveRepositoryAdapterTest {
                         result.getLoanTypeId().equals("loan01")
                                 && result.getName().equals("Préstamo Personal")
                                 && result.getInterest_rate().equals(0.05)
-                                && result.getAutomatic_validation()
+                                && result.getAutomaticValidation()
                 )
                 .verifyComplete();
 

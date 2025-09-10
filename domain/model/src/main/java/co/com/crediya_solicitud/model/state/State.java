@@ -8,7 +8,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder(toBuilder = true)
 public class State {
-    private String state_id;
+    private String stateId;
     private String name;
     private String description;
 }

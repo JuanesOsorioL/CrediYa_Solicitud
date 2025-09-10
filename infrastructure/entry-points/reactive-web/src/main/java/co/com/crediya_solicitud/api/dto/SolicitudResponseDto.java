@@ -9,4 +9,5 @@ public record SolicitudResponseDto(
         String email,
         String state_id,
         String loanTypeId
-) {}
+) {
+}

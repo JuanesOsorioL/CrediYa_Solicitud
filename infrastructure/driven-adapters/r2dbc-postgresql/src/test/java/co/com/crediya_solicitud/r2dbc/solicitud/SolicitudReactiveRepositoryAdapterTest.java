@@ -23,7 +23,7 @@ class SolicitudReactiveRepositoryAdapterTest {
         ObjectMapper mapperMock = Mockito.mock(ObjectMapper.class);
 
         SolicitudEntity entity = new SolicitudEntity();
-        entity.setSolicitud_id("sol123");
+        entity.setSolicitudId("sol123");
         entity.setAmount(BigDecimal.valueOf(2000));
         entity.setTerm(12);
         entity.setEmail("correo@test.com");
@@ -35,7 +35,7 @@ class SolicitudReactiveRepositoryAdapterTest {
                 .amount(BigDecimal.valueOf(2000))
                 .term(12)
                 .email("correo@test.com")
-                .state_id("PENDIENTE")
+                .stateId("PENDIENTE")
                 .loanTypeId("type01")
                 .build();
 

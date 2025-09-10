@@ -6,6 +6,7 @@ import co.com.crediya_solicitud.model.loantypes.gateways.LoanTypesRepository;
 import co.com.crediya_solicitud.model.logger.Logger;
 import co.com.crediya_solicitud.usecase.exception.SolicitudValidationException;
 import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
@@ -16,6 +17,10 @@ public class LoanTypesUseCase {
 
     private final LoanTypesRepository loanTypesRepository;
     private final Logger logger;
+
+    public Flux<LoanTypes> findAll(){
+        return loanTypesRepository.findAll();
+    }
 
     public Mono<LoanTypes> findByLoanTypeAndValidateAmount(String loanTypeId, BigDecimal amount) {
         return loanTypesRepository.findByloanTypeId(loanTypeId)
@@ -31,7 +36,7 @@ public class LoanTypesUseCase {
 
     private Mono<LoanTypes> validateAmount(LoanTypes loanType, BigDecimal amount) {
         if (!loanType.isValidAmount(amount)) {
-            logger.warn("El monto " + amount + " no cumple el rango permitido [" + loanType.getMinimum_amount() + " - " + loanType.getMaximum_amount() + "]");
+            logger.warn("El monto " + amount + " no cumple el rango permitido [" + loanType.getMinimumAmount() + " - " + loanType.getMaximumAmount() + "]");
             return Mono.error(new SolicitudValidationException(
                     List.of(),
                     List.of(SolicitudErrorCode.AMOUNT_INVALID),
