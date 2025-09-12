@@ -7,9 +7,12 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 public interface SolicitudRepository {
+
     Mono<Solicitud> save(Solicitud solicitud);
 
     Flux<Solicitud> findAllForReview(List<String> stateIds);
 
     Flux<Solicitud> findAll();
+
+    Mono<Long> countAllForReview(List<String> stateIds);
 }

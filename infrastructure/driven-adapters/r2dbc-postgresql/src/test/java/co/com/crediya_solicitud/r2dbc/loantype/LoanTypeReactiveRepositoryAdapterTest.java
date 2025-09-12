@@ -61,7 +61,7 @@ class LoanTypeReactiveRepositoryAdapterTest {
         LoanTypeReactiveRepositoryAdapter adapter =
                 new LoanTypeReactiveRepositoryAdapter(repoMock, mapperMock);
 
-        StepVerifier.create(adapter.findByloanTypeId("loan01"))
+        StepVerifier.create(adapter.findByloanType("loan01"))
                 .expectNextMatches(result ->
                         result.getLoanTypeId().equals("loan01")
                                 && result.getName().equals("Préstamo Personal")

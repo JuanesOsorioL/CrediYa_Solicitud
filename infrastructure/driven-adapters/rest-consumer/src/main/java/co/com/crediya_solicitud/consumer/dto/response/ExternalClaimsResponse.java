@@ -1,10 +1,9 @@
 package co.com.crediya_solicitud.consumer.dto.response;
 
-import co.com.crediya_solicitud.model.claims.Claims;
-
-public record ExternalClaimsResponse(
+public record ExternalClaimsResponse<T>(
         int status,
+        String code,
         String message,
-        Claims body
+        T body
 ) {
 }

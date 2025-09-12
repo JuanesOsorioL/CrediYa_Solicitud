@@ -3,7 +3,7 @@ package co.com.crediya_solicitud.api.exception;
 
 import co.com.crediya_solicitud.api.logger.GlobalLogger;
 import co.com.crediya_solicitud.api.utils.ApiResponseBuilder;
-import co.com.crediya_solicitud.model.error.SolicitudErrorCode;
+import co.com.crediya_solicitud.model.exception.SolicitudErrorCode;
 import co.com.crediya_solicitud.usecase.exception.SolicitudValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

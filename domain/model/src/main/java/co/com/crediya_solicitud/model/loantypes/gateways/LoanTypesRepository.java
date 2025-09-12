@@ -7,5 +7,6 @@ import reactor.core.publisher.Mono;
 public interface LoanTypesRepository {
     Flux<LoanTypes> findAll();
 
-    Mono<LoanTypes> findByloanTypeId(String loanTypeId);
+    Mono<LoanTypes> findByloanType(String loanTypeId);
 }
+

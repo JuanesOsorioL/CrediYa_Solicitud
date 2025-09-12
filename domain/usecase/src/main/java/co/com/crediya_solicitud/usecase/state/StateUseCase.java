@@ -14,8 +14,7 @@ public class StateUseCase {
     private final Logger logger;
 
     public Flux<State> findAll() {
-        return stateRepository.findAll().doOnNext(stateEntity -> logger.info("StateUseCase -> findAll() : se llama a findAll del repositorio"));
+        return stateRepository.findAll()
+                .doOnNext(stateEntity -> logger.info("StateUseCase -> findAll() : se llama a findAll del repositorio"));
     }
-
-
 }

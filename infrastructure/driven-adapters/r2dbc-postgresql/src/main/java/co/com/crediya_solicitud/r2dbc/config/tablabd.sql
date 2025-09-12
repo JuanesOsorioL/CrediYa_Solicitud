@@ -23,6 +23,7 @@ CREATE TABLE solicitud
     email        VARCHAR(100)   NOT NULL,
     state_id     VARCHAR(100)   NOT NULL,
     loan_type_id VARCHAR(100)   NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     FOREIGN KEY (state_id) REFERENCES estados (state_id),
     FOREIGN KEY (loan_type_id) REFERENCES tipo_prestamo (loan_type_id)
 );

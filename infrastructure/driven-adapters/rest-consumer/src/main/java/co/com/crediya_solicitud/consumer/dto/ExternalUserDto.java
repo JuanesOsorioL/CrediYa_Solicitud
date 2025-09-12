@@ -14,6 +14,4 @@ public record ExternalUserDto(String userId,
                               String email,
                               String documentId,
                               BigDecimal baseSalary) {
-
-
 }

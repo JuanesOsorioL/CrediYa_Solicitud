@@ -7,6 +7,7 @@ import co.com.crediya_solicitud.r2dbc.helper.ReactiveAdapterOperations;
 import org.reactivecommons.utils.ObjectMapper;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -24,7 +25,7 @@ public class SolicitudReactiveRepositoryAdapter extends ReactiveAdapterOperation
 
     @Override
     public Flux<Solicitud> findAllForReview(List<String> stateIds) {
-        return repository.findByStateIdIn(stateIds)//.map(this::toEntity);
+        return repository.findByStateIdIn(stateIds)
                 .map(e -> {
                     var d = this.toEntity(e); // Entity -> Domain
                     if (d == null) {
@@ -35,4 +36,10 @@ public class SolicitudReactiveRepositoryAdapter extends ReactiveAdapterOperation
                     return d;
                 });
     }
+
+    @Override
+    public Mono<Long> countAllForReview(List<String> stateIds) {
+        return repository.countByStateIdIn(stateIds);
+    }
+
 }

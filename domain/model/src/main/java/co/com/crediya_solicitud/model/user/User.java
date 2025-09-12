@@ -16,6 +16,4 @@ public record User(String userId,
                    String email,
                    String password,
                    String rolId,
-                   BigDecimal baseSalary) {
-
-}
+                   BigDecimal baseSalary) { }

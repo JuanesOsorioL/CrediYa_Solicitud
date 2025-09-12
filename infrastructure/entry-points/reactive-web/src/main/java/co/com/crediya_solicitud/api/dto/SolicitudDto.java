@@ -6,12 +6,12 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 public record SolicitudDto(
-        String solicitud_id,
+        String solicitudId,
         @NotNull(message = "USR_007")
         BigDecimal amount,
 
         @NotBlank(message = "USR_001")
-        String document_id,
+        String documentId,
 
         @NotNull(message = "USR_002")
         int term,
@@ -19,7 +19,7 @@ public record SolicitudDto(
         String email,
 
         @NotBlank(message = "USR_004")
-        String state_id,
+        String stateId,
         @NotBlank(message = "USR_008")
         String loanTypeId) {
 }

@@ -1,7 +1,7 @@
 package co.com.crediya_solicitud.usecase.solicitud;
 
 import co.com.crediya_solicitud.model.solicitud.gateways.UserGateway;
-import co.com.crediya_solicitud.model.error.SolicitudErrorCode;
+import co.com.crediya_solicitud.model.exception.SolicitudErrorCode;
 import co.com.crediya_solicitud.model.exception.ExternalServiceException;
 import co.com.crediya_solicitud.model.loantypes.LoanTypes;
 import co.com.crediya_solicitud.model.logger.Logger;
@@ -43,7 +43,7 @@ class SolicitudUseCaseTest {
     @Test
     void createSolicitud_success_flow_persists_and_returns_saved_with_original_document() {
         Solicitud input = Solicitud.builder()
-                .solicitud_id(null)
+                .solicitudId(null)
                 .documentId("DOC-1")
                 .amount(BigDecimal.valueOf(20000))
                 .loanTypeId("LT-1")
@@ -66,7 +66,7 @@ class SolicitudUseCaseTest {
 
         StepVerifier.create(result)
                 .assertNext(saved -> {
-                    assertThat(saved.getSolicitud_id()).isNotBlank();
+                    assertThat(saved.getSolicitudId()).isNotBlank();
                     assertThat(saved.getStateId()).isEqualTo("estado-001");
                     assertThat(saved.getDocumentId()).isEqualTo("DOC-1");
                     assertThat(saved.getEmail()).isEqualTo("user@mail.com");
@@ -139,8 +139,8 @@ class SolicitudUseCaseTest {
 
     @Test
     void getAllSolicitud_emits_items_and_logs() {
-        Solicitud a = Solicitud.builder().solicitud_id(UUID.randomUUID().toString()).build();
-        Solicitud b = Solicitud.builder().solicitud_id(UUID.randomUUID().toString()).build();
+        Solicitud a = Solicitud.builder().solicitudId(UUID.randomUUID().toString()).build();
+        Solicitud b = Solicitud.builder().solicitudId(UUID.randomUUID().toString()).build();
 
         when(solicitudRepository.findAll()).thenReturn(Flux.just(a, b));
 

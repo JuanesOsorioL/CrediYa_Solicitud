@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Builder(toBuilder = true)
 public class Solicitud {
-    private String solicitud_id;
+    private String solicitudId;
     private BigDecimal amount;
     private int term;
     private String email;

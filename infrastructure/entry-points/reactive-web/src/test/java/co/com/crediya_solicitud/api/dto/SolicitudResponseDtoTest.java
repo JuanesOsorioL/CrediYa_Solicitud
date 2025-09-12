@@ -17,11 +17,11 @@ class SolicitudResponseDtoTest {
                 "loan-type-01"
         );
 
-        assertThat(dto.solicitud_id()).isEqualTo("sol-123");
+        assertThat(dto.solicitudId()).isEqualTo("sol-123");
         assertThat(dto.amount()).isEqualByComparingTo(BigDecimal.TEN);
         assertThat(dto.term()).isEqualTo(24);
         assertThat(dto.email()).isEqualTo("mail@test.com");
-        assertThat(dto.state_id()).isEqualTo("estado-001");
+        assertThat(dto.stateId()).isEqualTo("estado-001");
         assertThat(dto.loanTypeId()).isEqualTo("loan-type-01");
     }
 }

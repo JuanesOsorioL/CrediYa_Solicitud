@@ -6,12 +6,13 @@ import co.com.crediya_solicitud.consumer.dto.response.ExternalErrorResponse;
 import co.com.crediya_solicitud.consumer.dto.response.ExternalUserListResponse;
 import co.com.crediya_solicitud.consumer.dto.response.ExternalUserResponse;
 import co.com.crediya_solicitud.consumer.mapper.RestConsumerDtoMapper;
-import co.com.crediya_solicitud.model.claims.Claims;
+import co.com.crediya_solicitud.model.claims.ClaismoDto;
 import co.com.crediya_solicitud.model.exception.ExternalServiceException;
 import co.com.crediya_solicitud.model.logger.Logger;
 import co.com.crediya_solicitud.model.solicitud.gateways.UserGateway;
 import co.com.crediya_solicitud.model.user.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -23,56 +24,63 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class RestConsumer implements UserGateway {
+
     private final WebClient client;
     private final Logger logger;
     private final RestConsumerDtoMapper restConsumerDtoMapper;
 
-    private static final String CALL = "Se realiza el llamado al Micro de Auth";
     private static final String AUTORIZATION = "Authorization";
     private static final String BEARER = "Bearer ";
-    private static final String ERROR = "Se presento un error en el Micro";
+    private static final String DOCUMENT = "/v1/usuarios/document";
+    private static final String VALIDATE_TOKEN = "/v1/validateToken";
+    private static final String USERS_BY_EMAILS = "/v1/usuarios/mapEmails";
 
 
     @Override
-    public Mono<Claims> validateTokenAndGetClaims(String token) {
-        logger.info(CALL);
+    public Mono<ClaismoDto> validateTokenAndGetClaims(String token) {
+        logger.info("RestConsumer -> validateTokenAndGetClaims : Se realiza el llamado al Micro de Auth");
         return client
                 .get()
-                .uri("/v1/validateToken")
+                .uri(VALIDATE_TOKEN)
                 .header(AUTORIZATION, BEARER + token)
                 .retrieve()
                 .onStatus(
                         status -> status.is4xxClientError() || status.is5xxServerError(),
                         response -> response.bodyToMono(ExternalErrorResponse.class)
-                                .doOnNext(externalErrorResponse -> logger.info(ERROR))
+                                .doOnNext(externalErrorResponse -> logger.info("RestConsumer -> validateTokenAndGetClaims : Se presento un error en el Micro"))
                                 .flatMap(error -> Mono.error(
                                         new ExternalServiceException(
                                                 error.getStatus(),
+                                                error.getCode(),
                                                 error.getMessage(),
                                                 error.getBody()
+
                                         )
                                 ))
                 )
-                .bodyToMono(ExternalClaimsResponse.class)
+                .bodyToMono(new ParameterizedTypeReference<ExternalClaimsResponse<ClaismoDto>>() {
+                })
                 .map(ExternalClaimsResponse::body)
-                .doOnNext(claimsDto -> logger.info("Respuesta exitosa se mapea a un claismoDto"));
+                .doOnNext(claimsDto -> logger.info("RestConsumer -> getUsersByEmails :Respuesta exitosa se mapea a un claismoDto"));
     }
+
 
     @Override
     public Mono<String> getUserEmailByDocument(String documentId) {
-        logger.info(CALL);
+        logger.info("RestConsumer -> getUserEmailByDocument : Se realiza el llamado al Micro de Auth");
         return client
                 .post()
-                .uri("/v1/usuarios/document")
+                .uri(DOCUMENT)
                 .bodyValue(new RequestDocumentId(documentId))
                 .retrieve()
                 .onStatus(
                         status -> status.is4xxClientError() || status.is5xxServerError(),
                         response -> response.bodyToMono(ExternalErrorResponse.class)
-                                .doOnNext(externalErrorResponse -> logger.info(ERROR))
+                                .doOnNext(externalErrorResponse -> logger.info("RestConsumer -> getUserEmailByDocument : Se presento un error en el Micro"))
                                 .flatMap(error -> Mono.error(
                                         new ExternalServiceException(
                                                 error.getStatus(),
+                                                error.getCode(),
                                                 error.getMessage(),
                                                 error.getBody()
                                         )
@@ -80,24 +88,25 @@ public class RestConsumer implements UserGateway {
                 )
                 .bodyToMono(ExternalUserResponse.class)
                 .map(response -> response.getBody().email())
-                .doOnNext(email -> logger.info("Se retorna a UseCase el email" + email + " "));
+                .doOnNext(email -> logger.info("RestConsumer -> getUsersByEmails : Se retorna a UseCase el email" + email + " "));
     }
 
     @Override
     public Mono<Map<String, User>> getUsersByEmails(Set<String> emails) {
-        logger.info(CALL);
+        logger.info("RestConsumer -> getUsersByEmails : Se realiza el llamado al Micro de Auth");
         return client
                 .post()
-                .uri("/v1/usuarios/mapEmails")
+                .uri(USERS_BY_EMAILS)
                 .bodyValue(emails)
                 .retrieve()
                 .onStatus(
                         status -> status.is4xxClientError() || status.is5xxServerError(),
                         response -> response.bodyToMono(ExternalErrorResponse.class)
-                                .doOnNext(externalErrorResponse -> logger.info(ERROR))
+                                .doOnNext(externalErrorResponse -> logger.info("RestConsumer -> getUsersByEmails : Se presento un error en el Micro"))
                                 .flatMap(error -> Mono.error(
                                         new ExternalServiceException(
                                                 error.getStatus(),
+                                                error.getCode(),
                                                 error.getMessage(),
                                                 error.getBody()
                                         )
@@ -113,7 +122,7 @@ public class RestConsumer implements UserGateway {
                                     e -> restConsumerDtoMapper.toDomain(e.getValue())
                             ));
                 })
-                .doOnNext(map -> logger.info("Usuarios recibidos desde Auth: " + map.size()));
+                .doOnNext(map -> logger.info("\"RestConsumer -> getUsersByEmails : Usuarios recibidos desde Auth: " + map.size()));
     }
 }
 

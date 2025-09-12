@@ -5,11 +5,11 @@ import java.math.BigDecimal;
 public record SolicitudRevisionDto(BigDecimal amount,
                                    int term,
                                    String email,
-                                   String name,
-                                   String loanType,
-                                   Double interest_rate,
-                                   String state,
+                                   String fullName,
+                                   String loanTypeName,
+                                   Integer interestRate,
+                                   String stateName,
                                    BigDecimal baseSalary,
-                                   BigDecimal total_monthly_debt_approved_applications
+                                   BigDecimal debt
 ) {
 }

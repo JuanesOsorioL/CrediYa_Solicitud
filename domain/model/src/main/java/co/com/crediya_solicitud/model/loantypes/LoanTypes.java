@@ -15,7 +15,7 @@ public class LoanTypes {
     private String name;
     private BigDecimal minimumAmount;
     private BigDecimal maximumAmount;
-    private Double interestRate;
+    private Integer interestRate;
     private Boolean automaticValidation;
 
     public boolean isValidAmount(BigDecimal amount) {

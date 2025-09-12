@@ -5,5 +5,4 @@ import reactor.core.publisher.Flux;
 
 public interface StateRepository {
     Flux<State> findAll();
-
 }

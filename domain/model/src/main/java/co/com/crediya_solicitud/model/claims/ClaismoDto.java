@@ -1,7 +1,6 @@
 package co.com.crediya_solicitud.model.claims;
 
-public record Claims
-        (
+public record ClaismoDto(
                 String FistName,
                 String sub,
                 String Rol,
@@ -9,7 +8,4 @@ public record Claims
                 String LastName,
                 String Document,
                 String iat,
-                String jti
-        ) {
-}
-
+                String jti) {}

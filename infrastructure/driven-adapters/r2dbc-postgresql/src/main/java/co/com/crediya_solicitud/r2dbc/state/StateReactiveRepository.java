@@ -6,7 +6,5 @@ import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 
 
 public interface StateReactiveRepository extends ReactiveCrudRepository<StateEntity, String>, ReactiveQueryByExampleExecutor<StateEntity> {
-
-
 }
 

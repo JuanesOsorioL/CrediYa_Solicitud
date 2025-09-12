@@ -1,16 +1,17 @@
 package co.com.crediya_solicitud.usecase.loantypes;
 
-import co.com.crediya_solicitud.model.error.SolicitudErrorCode;
+import co.com.crediya_solicitud.model.exception.SolicitudErrorCode;
+import co.com.crediya_solicitud.model.exception.specificexceptions.BadRequestException;
+import co.com.crediya_solicitud.model.exception.specificexceptions.NotFoundException;
 import co.com.crediya_solicitud.model.loantypes.LoanTypes;
 import co.com.crediya_solicitud.model.loantypes.gateways.LoanTypesRepository;
 import co.com.crediya_solicitud.model.logger.Logger;
-import co.com.crediya_solicitud.usecase.exception.SolicitudValidationException;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
-import java.util.List;
+import java.util.Objects;
 
 @RequiredArgsConstructor
 public class LoanTypesUseCase {
@@ -18,31 +19,36 @@ public class LoanTypesUseCase {
     private final LoanTypesRepository loanTypesRepository;
     private final Logger logger;
 
-    public Flux<LoanTypes> findAll(){
+    public Flux<LoanTypes> findAll() {
         return loanTypesRepository.findAll();
     }
 
     public Mono<LoanTypes> findByLoanTypeAndValidateAmount(String loanTypeId, BigDecimal amount) {
-        return loanTypesRepository.findByloanTypeId(loanTypeId)
-                .doOnSubscribe(sub -> logger.info("Se consulta si el tipo de prestamo existe en BD"))
-                .switchIfEmpty(
-                        Mono.error(new SolicitudValidationException(
-                                List.of(),
-                                List.of(SolicitudErrorCode.LOAN_TYPE_NOT_REGISTERED),
-                                null))).doOnNext(error -> logger.error("Tipo de prestamo no existe"))
-                .flatMap(loanType -> validateAmount(loanType, amount));
-    }
+        // Validaciones rápidas de entrada (400)
+        if (loanTypeId == null || loanTypeId.isBlank()) {
+            return Mono.error(new BadRequestException(SolicitudErrorCode.ID_LOAN_TYPE_EMPTY));
+        }
+        if (Objects.isNull(amount)) {
+            return Mono.error(new BadRequestException(SolicitudErrorCode.AMOUNT_EMPTY));
+        }
 
+        return loanTypesRepository.findByloanType(loanTypeId)
+                .doOnSubscribe(s -> logger.info("Se consulta si el tipo de préstamo " + loanTypeId + " existe en BD"))
+                .switchIfEmpty(Mono.defer(() -> {
+                    logger.warn("Tipo de préstamo no registrado: " + loanTypeId);
+                    return Mono.error(new NotFoundException(SolicitudErrorCode.LOAN_TYPE_NOT_REGISTERED));
+                }))
+                .flatMap(loanType -> validateAmount(loanType, amount))
+                .doOnSuccess(lt -> logger.info("Validación OK: loanType = " + loanTypeId + ", amount = " + amount))
+                .doOnError(err -> logger.warn("Validación falló: loanType = " + loanTypeId + ", amount = " + amount + ", error = " + err.getMessage()));
+    }
 
     private Mono<LoanTypes> validateAmount(LoanTypes loanType, BigDecimal amount) {
         if (!loanType.isValidAmount(amount)) {
             logger.warn("El monto " + amount + " no cumple el rango permitido [" + loanType.getMinimumAmount() + " - " + loanType.getMaximumAmount() + "]");
-            return Mono.error(new SolicitudValidationException(
-                    List.of(),
-                    List.of(SolicitudErrorCode.AMOUNT_INVALID),
-                    null));
+            return Mono.error(new BadRequestException(SolicitudErrorCode.AMOUNT_INVALID));
         }
-        return Mono.just(loanType).doOnSuccess(entity -> logger.info("El monto " + amount + " es válido para el tipo de préstamo " + entity.getLoanTypeId()));
+        return Mono.just(loanType)
+                .doOnSuccess(lt -> logger.info("El monto " + amount + " es válido para el tipo de préstamo " + lt.getLoanTypeId() + " "));
     }
 }
-

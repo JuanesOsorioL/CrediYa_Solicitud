@@ -1,7 +1,7 @@
 package co.com.crediya_solicitud.consumer.config;
 
 
-import co.com.crediya_solicitud.model.sharedToken.AuthContext;
+import co.com.crediya_solicitud.model.shared_token.AuthContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.ClientRequest;

@@ -1,7 +1,7 @@
 package co.com.crediya_solicitud.usecase.exception;
 
 
-import co.com.crediya_solicitud.model.error.SolicitudErrorCode;
+import co.com.crediya_solicitud.model.exception.SolicitudErrorCode;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

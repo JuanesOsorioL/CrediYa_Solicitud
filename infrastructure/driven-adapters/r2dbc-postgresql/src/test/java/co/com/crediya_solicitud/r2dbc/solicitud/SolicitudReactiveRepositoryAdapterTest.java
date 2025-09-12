@@ -31,7 +31,7 @@ class SolicitudReactiveRepositoryAdapterTest {
         entity.setLoanTypeId("type01");
 
         Solicitud expected = Solicitud.builder()
-                .solicitud_id("sol123")
+                .solicitudId("sol123")
                 .amount(BigDecimal.valueOf(2000))
                 .term(12)
                 .email("correo@test.com")

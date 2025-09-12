@@ -5,8 +5,9 @@ import lombok.Getter;
 import java.util.List;
 
 @Getter
-public class ExternalErrorResponse{
+public class ExternalErrorResponse {
     private Integer status;
+    private String code;
     private String message;
     private List<String> body;
 }
