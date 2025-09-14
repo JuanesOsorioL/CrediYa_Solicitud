@@ -39,7 +39,7 @@ class LoanTypeReactiveRepositoryAdapterTest {
                 "Préstamo Personal",
                 BigDecimal.valueOf(1000),
                 BigDecimal.valueOf(5000),
-                BigDecimal.valueOf(0.05),
+                5,
                 true
         );
 
@@ -48,8 +48,8 @@ class LoanTypeReactiveRepositoryAdapterTest {
                 .name("Préstamo Personal")
                 .minimumAmount(BigDecimal.valueOf(1000))
                 .maximumAmount(BigDecimal.valueOf(5000))
-                .interest_rate(0.05)
-                .automatic_validation(true)
+                .interestRate(5)
+                .automaticValidation(true)
                 .build();
 
         when(mapperMock.mapBuilder(eq(entity), eq(LoanTypes.LoanTypesBuilder.class)))
@@ -65,7 +65,7 @@ class LoanTypeReactiveRepositoryAdapterTest {
                 .expectNextMatches(result ->
                         result.getLoanTypeId().equals("loan01")
                                 && result.getName().equals("Préstamo Personal")
-                                && result.getInterest_rate().equals(0.05)
+                                && result.getInterestRate().equals(5)
                                 && result.getAutomaticValidation()
                 )
                 .verifyComplete();

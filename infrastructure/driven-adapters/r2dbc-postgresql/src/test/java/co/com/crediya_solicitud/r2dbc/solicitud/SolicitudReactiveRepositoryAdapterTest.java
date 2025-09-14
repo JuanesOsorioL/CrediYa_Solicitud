@@ -27,7 +27,7 @@ class SolicitudReactiveRepositoryAdapterTest {
         entity.setAmount(BigDecimal.valueOf(2000));
         entity.setTerm(12);
         entity.setEmail("correo@test.com");
-        entity.setState_id("PENDIENTE");
+        entity.setStateId("PENDIENTE");
         entity.setLoanTypeId("type01");
 
         Solicitud expected = Solicitud.builder()

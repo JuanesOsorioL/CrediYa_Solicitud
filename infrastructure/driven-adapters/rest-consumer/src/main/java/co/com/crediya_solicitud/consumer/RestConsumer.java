@@ -1,5 +1,6 @@
 package co.com.crediya_solicitud.consumer;
 
+import co.com.crediya_solicitud.consumer.dto.EmailsRequestDto;
 import co.com.crediya_solicitud.consumer.dto.RequestDocumentId;
 import co.com.crediya_solicitud.consumer.dto.response.ExternalClaimsResponse;
 import co.com.crediya_solicitud.consumer.dto.response.ExternalErrorResponse;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
 
@@ -97,7 +99,8 @@ public class RestConsumer implements UserGateway {
         return client
                 .post()
                 .uri(USERS_BY_EMAILS)
-                .bodyValue(emails)
+                .bodyValue(new EmailsRequestDto(new ArrayList<>(emails)))
+
                 .retrieve()
                 .onStatus(
                         status -> status.is4xxClientError() || status.is5xxServerError(),
@@ -114,15 +117,14 @@ public class RestConsumer implements UserGateway {
                 )
                 .bodyToMono(ExternalUserListResponse.class)
                 .map(resp -> {
-                    var map = resp.body();
+                    var map = resp.body().users();
                     return map.entrySet().stream()
                             .filter(e -> e.getKey() != null && e.getValue() != null)
                             .collect(java.util.stream.Collectors.toMap(
                                     Map.Entry::getKey,
                                     e -> restConsumerDtoMapper.toDomain(e.getValue())
                             ));
-                })
-                .doOnNext(map -> logger.info("\"RestConsumer -> getUsersByEmails : Usuarios recibidos desde Auth: " + map.size()));
+                });
     }
 }
 

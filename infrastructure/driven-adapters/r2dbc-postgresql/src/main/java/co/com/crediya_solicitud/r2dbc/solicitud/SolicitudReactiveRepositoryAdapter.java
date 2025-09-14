@@ -26,15 +26,7 @@ public class SolicitudReactiveRepositoryAdapter extends ReactiveAdapterOperation
     @Override
     public Flux<Solicitud> findAllForReview(List<String> stateIds) {
         return repository.findByStateIdIn(stateIds)
-                .map(e -> {
-                    var d = this.toEntity(e); // Entity -> Domain
-                    if (d == null) {
-                        // log para saber cuál entidad falla
-                        // logger.error("toEntity devolvió null. entity={}", e);
-                        throw new IllegalStateException("toEntity devolvió null");
-                    }
-                    return d;
-                });
+                .map(this::toEntity);
     }
 
     @Override

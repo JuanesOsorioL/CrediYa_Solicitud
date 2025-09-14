@@ -38,6 +38,12 @@ public class UseCasesConfigTest {
             return new MyUseCase();
         }
 
+
+        @Bean
+        co.com.crediya_solicitud.model.state.gateways.StateRepository stateRepository() {
+            return mock(co.com.crediya_solicitud.model.state.gateways.StateRepository.class);
+        }
+
         @Bean
         co.com.crediya_solicitud.model.loantypes.gateways.LoanTypesRepository loanTypesRepository() {
             return mock(co.com.crediya_solicitud.model.loantypes.gateways.LoanTypesRepository.class);

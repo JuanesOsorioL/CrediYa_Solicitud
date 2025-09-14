@@ -10,8 +10,6 @@ import org.springframework.context.annotation.*;
 
 @Configuration
 @ComponentScan(basePackages = "co.com.crediya_solicitud.usecase",
-//        includeFilters = { @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = { LoanTypesUseCase.class, StateUseCase.class })
-//        },
         includeFilters = {
                 @ComponentScan.Filter(type = FilterType.REGEX, pattern = "^.+UseCase$")
         },

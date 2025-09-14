@@ -17,8 +17,8 @@ class LoanTypesTest {
                 .name("Personal Loan")
                 .minimumAmount(BigDecimal.valueOf(1000))
                 .maximumAmount(BigDecimal.valueOf(5000))
-                .interest_rate(0.05)
-                .automatic_validation(true)
+                .interestRate(5)
+                .automaticValidation(true)
                 .build();
 
         boolean result = loanType.isValidAmount(BigDecimal.valueOf(3000));

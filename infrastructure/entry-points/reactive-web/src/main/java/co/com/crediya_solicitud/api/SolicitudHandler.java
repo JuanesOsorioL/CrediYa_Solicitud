@@ -50,7 +50,6 @@ public class SolicitudHandler {
         return SolicitudErrorCode.fromCode(code);
     }
 
-
     public Mono<ServerResponse> createSolicitud(ServerRequest request) {
         logger.info("SolicitudHandler -> createSolicitud : inicia el flujo.");
         String header = request.headers().header("Authorization").stream()
@@ -103,7 +102,6 @@ public class SolicitudHandler {
                         responseSolicitudDto
                 )).doOnSuccess(dto -> logger.info("SolicitudHandler -> createSolicitud : Usuario creado exitosamente"));
     }
-
 
     public Mono<ServerResponse> findAll(ServerRequest request) {
         String rawToken = extraerToken(request);
