@@ -22,7 +22,7 @@ public class GlobalLogger implements Logger {
 
     @Override
     public void warnTwo(String message, String body) {
-        logger.warn(message,body);
+        logger.warn(message, body);
     }
 
     @Override

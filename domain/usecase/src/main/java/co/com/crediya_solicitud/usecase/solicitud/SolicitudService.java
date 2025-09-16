@@ -1,11 +1,16 @@
 package co.com.crediya_solicitud.usecase.solicitud;
 
-import co.com.crediya_solicitud.model.TokenDto;
+import co.com.crediya_solicitud.model.solicitud_revision.SolicitudRevision;
 import co.com.crediya_solicitud.model.solicitud.Solicitud;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 public interface SolicitudService {
-    Mono<Solicitud> createSolicitud(Solicitud solicitud, TokenDto token);
-    Flux<Solicitud> getAllSolicitud();
+    Mono<Solicitud> createSolicitud(Solicitud solicitud);
+
+    Flux<SolicitudRevision> getSolicitudByRevision(List<String> status, int page, int size);
+
+    Mono<Long> countByStatus(List<String> status);
 }

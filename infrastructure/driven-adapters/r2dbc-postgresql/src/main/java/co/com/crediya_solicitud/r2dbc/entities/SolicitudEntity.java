@@ -19,11 +19,12 @@ import java.math.BigDecimal;
 public class SolicitudEntity {
     @Id
     @Column("solicitud_id")
-    private String solicitud_id;
+    private String solicitudId;
     private BigDecimal amount;
     private int term;
     private String email;
-    private String state_id;
+    @Column("state_id")
+    private String stateId;
     @Column("loan_type_id")
     private String loanTypeId;
 }

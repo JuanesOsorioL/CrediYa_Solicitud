@@ -1,10 +1,11 @@
 package co.com.crediya_solicitud.usecase.loantypes;
 
-import co.com.crediya_solicitud.model.error.SolicitudErrorCode;
+
 import co.com.crediya_solicitud.model.loantypes.LoanTypes;
 import co.com.crediya_solicitud.model.loantypes.gateways.LoanTypesRepository;
 import co.com.crediya_solicitud.model.logger.Logger;
-import co.com.crediya_solicitud.usecase.exception.SolicitudValidationException;
+import co.com.crediya_solicitud.model.exception.specificexceptions.BadRequestException;
+import co.com.crediya_solicitud.model.exception.specificexceptions.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -29,71 +30,76 @@ class LoanTypesUseCaseTest {
     }
 
     @Test
-    void whenLoanTypeNotFound_thenEmitValidationException_LOAN_TYPE_NOT_REGISTERED() {
+    void whenLoanTypeNotFound_thenPropagates_NotFoundException() {
         String loanTypeId = "LT-404";
-        when(repository.findByloanTypeId(loanTypeId)).thenReturn(Mono.empty());
+        when(repository.findByloanType(loanTypeId)).thenReturn(Mono.empty());
 
-        Mono<LoanTypes> result = useCase.findByLoanTypeAndValidateAmount(loanTypeId, BigDecimal.TEN);
-
-        StepVerifier.create(result)
-                .expectErrorSatisfies(err -> {
-                    assertThat(err).isInstanceOf(SolicitudValidationException.class);
-                    SolicitudValidationException sve = (SolicitudValidationException) err;
-                    assertThat(sve.getDomainErrors()).contains(SolicitudErrorCode.LOAN_TYPE_NOT_REGISTERED);
-                })
+        StepVerifier.create(useCase.findByLoanTypeAndValidateAmount(loanTypeId, BigDecimal.TEN))
+                .expectError(NotFoundException.class)
                 .verify();
 
-        verify(repository).findByloanTypeId(loanTypeId);
-        verify(logger).info("Se consulta si el tipo de prestamo existe en BD");
+        verify(repository).findByloanType(loanTypeId);
+        // El código actual incluye el id y la tilde en “préstamo”:
+        verify(logger).info(argThat(msg ->
+                msg.startsWith("Se consulta si el tipo de préstamo") && msg.contains(loanTypeId)
+        ));
         verifyNoMoreInteractions(repository);
     }
 
     @Test
-    void whenAmountInvalid_thenEmitValidationException_AMOUNT_INVALID() {
+    void whenAmountInvalid_thenPropagates_BadRequestException() {
         String loanTypeId = "LT-001";
         BigDecimal amount = new BigDecimal("9999");
 
         LoanTypes loanType = mock(LoanTypes.class);
         when(loanType.isValidAmount(amount)).thenReturn(false);
-        when(loanType.getMinimum_amount()).thenReturn(new BigDecimal("10000"));
-        when(loanType.getMaximum_amount()).thenReturn(new BigDecimal("50000"));
-        when(repository.findByloanTypeId(loanTypeId)).thenReturn(Mono.just(loanType));
+        when(loanType.getMinimumAmount()).thenReturn(new BigDecimal("10000"));
+        when(loanType.getMaximumAmount()).thenReturn(new BigDecimal("50000"));
+        when(repository.findByloanType(loanTypeId)).thenReturn(Mono.just(loanType));
 
-        Mono<LoanTypes> result = useCase.findByLoanTypeAndValidateAmount(loanTypeId, amount);
-
-        StepVerifier.create(result)
-                .expectErrorSatisfies(err -> {
-                    assertThat(err).isInstanceOf(SolicitudValidationException.class);
-                    SolicitudValidationException sve = (SolicitudValidationException) err;
-                    assertThat(sve.getDomainErrors()).contains(SolicitudErrorCode.AMOUNT_INVALID);
-                })
+        StepVerifier.create(useCase.findByLoanTypeAndValidateAmount(loanTypeId, amount))
+                .expectError(BadRequestException.class)
                 .verify();
 
-        verify(repository).findByloanTypeId(loanTypeId);
-        verify(logger).info("Se consulta si el tipo de prestamo existe en BD");
-        verify(logger).warn("El monto " + amount + " no cumple el rango permitido [" +
-                loanType.getMinimum_amount() + " - " + loanType.getMaximum_amount() + "]");
+        verify(repository).findByloanType(loanTypeId);
+        verify(logger).info(argThat(msg ->
+                msg.startsWith("Se consulta si el tipo de préstamo") && msg.contains(loanTypeId)
+        ));
+        verify(logger).warn(argThat(msg ->
+                msg.contains("no cumple el rango permitido") &&
+                        msg.contains(loanType.getMinimumAmount().toString()) &&
+                        msg.contains(loanType.getMaximumAmount().toString())
+        ));
     }
 
     @Test
-    void whenAmountValid_thenReturnLoanType() {
+    void whenAmountValid_thenReturnLoanType_andLogs() {
         String loanTypeId = "LT-001";
         BigDecimal amount = new BigDecimal("20000");
 
         LoanTypes loanType = mock(LoanTypes.class);
         when(loanType.isValidAmount(amount)).thenReturn(true);
         when(loanType.getLoanTypeId()).thenReturn(loanTypeId);
-        when(repository.findByloanTypeId(loanTypeId)).thenReturn(Mono.just(loanType));
+        when(repository.findByloanType(loanTypeId)).thenReturn(Mono.just(loanType));
 
-        Mono<LoanTypes> result = useCase.findByLoanTypeAndValidateAmount(loanTypeId, amount);
-
-        StepVerifier.create(result)
+        StepVerifier.create(useCase.findByLoanTypeAndValidateAmount(loanTypeId, amount))
                 .expectNext(loanType)
                 .verifyComplete();
 
-        verify(repository).findByloanTypeId(loanTypeId);
-        verify(logger).info("Se consulta si el tipo de prestamo existe en BD");
-        verify(logger).info("El monto " + amount + " es válido para el tipo de préstamo " + loanTypeId);
+        verify(repository).findByloanType(loanTypeId);
+
+        verify(logger).info(argThat(msg ->
+                msg.startsWith("Se consulta si el tipo de préstamo") && msg.contains(loanTypeId)
+        ));
+        verify(logger).info(argThat(msg ->
+                msg.contains("es válido") &&
+                        msg.contains(loanTypeId) &&
+                        msg.contains(amount.toString())
+        ));
+        verify(logger).info(argThat(msg ->
+                msg.contains("Validación OK")
+        ));
+
         verifyNoMoreInteractions(repository);
     }
 }

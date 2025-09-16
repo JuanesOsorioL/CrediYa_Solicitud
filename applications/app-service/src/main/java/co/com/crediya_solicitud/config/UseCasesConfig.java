@@ -1,10 +1,11 @@
 package co.com.crediya_solicitud.config;
 
-import co.com.crediya_solicitud.model.UserGateway;
+import co.com.crediya_solicitud.model.solicitud.gateways.UserGateway;
+import co.com.crediya_solicitud.model.logger.Logger;
 import co.com.crediya_solicitud.model.solicitud.gateways.SolicitudRepository;
 import co.com.crediya_solicitud.usecase.loantypes.LoanTypesUseCase;
 import co.com.crediya_solicitud.usecase.solicitud.SolicitudUseCase;
-import co.com.crediya_solicitud.model.logger.Logger;
+import co.com.crediya_solicitud.usecase.state.StateUseCase;
 import org.springframework.context.annotation.*;
 
 @Configuration
@@ -14,10 +15,10 @@ import org.springframework.context.annotation.*;
         },
         useDefaultFilters = false)
 public class UseCasesConfig {
-        @Bean
-        @Primary
-        public SolicitudUseCase solicitudUseCase(SolicitudRepository solicitudRepository, LoanTypesUseCase loanTypesUseCase, Logger logger, UserGateway userGateway) {
-                return new SolicitudUseCase(solicitudRepository,loanTypesUseCase, logger,userGateway);
-        }
+    @Bean
+    @Primary
+    public SolicitudUseCase solicitudUseCase(SolicitudRepository solicitudRepository, LoanTypesUseCase loanTypesUseCase, StateUseCase stateUseCase, Logger logger, UserGateway userGateway) {
+        return new SolicitudUseCase(solicitudRepository, loanTypesUseCase, stateUseCase, logger, userGateway);
+    }
 
 }

@@ -1,6 +1,6 @@
 package co.com.crediya_solicitud.usecase.exception;
 
-import co.com.crediya_solicitud.model.error.SolicitudErrorCode;
+import co.com.crediya_solicitud.model.exception.SolicitudErrorCode;
 import lombok.Getter;
 
 import java.util.List;

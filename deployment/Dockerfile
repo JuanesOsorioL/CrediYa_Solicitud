@@ -1,7 +1,21 @@
-FROM eclipse-temurin:21-jdk-alpine
-VOLUME /tmp
-COPY *.jar CrediYa_Solicitud.jar
-ENV JAVA_OPTS=" -Xshareclasses:name=cacheapp,cacheDir=/cache,nonfatal -XX:+UseContainerSupport -XX:MaxRAMPercentage=70 -Djava.security.egd=file:/dev/./urandom"
-# Replace with a non-root user to avoid running the container with excessive privileges
-USER appuser
-ENTRYPOINT [ "sh", "-c", "java $JAVA_OPTS  -jar CrediYa_Solicitud.jar" ]
+#FROM eclipse-temurin:21-jdk-alpine
+#VOLUME /tmp
+#COPY *.jar CrediYa_Solicitud.jar
+#ENV JAVA_OPTS=" -Xshareclasses:name=cacheapp,cacheDir=/cache,nonfatal -XX:+UseContainerSupport -XX:MaxRAMPercentage=70 -Djava.security.egd=file:/dev/./urandom"
+## Replace with a non-root user to avoid running the container with excessive privileges
+#USER appuser
+#ENTRYPOINT [ "sh", "-c", "java $JAVA_OPTS  -jar CrediYa_Solicitud.jar" ]
+
+# Build
+FROM gradle:8.8-jdk-21 AS build
+WORKDIR /workspace
+COPY . .
+RUN gradle --no-daemon clean bootJar -x test
+
+# Runtime
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY --from=build /workspace/build/libs/*.jar /app/app.jar
+ENV SERVER_PORT=8080
+EXPOSE 8080
+ENTRYPOINT ["java","-jar","/app/app.jar"]

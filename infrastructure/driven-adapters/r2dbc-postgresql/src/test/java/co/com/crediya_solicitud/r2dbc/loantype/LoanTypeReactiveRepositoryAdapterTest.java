@@ -39,17 +39,17 @@ class LoanTypeReactiveRepositoryAdapterTest {
                 "Préstamo Personal",
                 BigDecimal.valueOf(1000),
                 BigDecimal.valueOf(5000),
-                BigDecimal.valueOf(0.05),
+                5,
                 true
         );
 
         LoanTypes expectedLoanType = LoanTypes.builder()
                 .loanTypeId("loan01")
                 .name("Préstamo Personal")
-                .minimum_amount(BigDecimal.valueOf(1000))
-                .maximum_amount(BigDecimal.valueOf(5000))
-                .interest_rate(0.05)
-                .automatic_validation(true)
+                .minimumAmount(BigDecimal.valueOf(1000))
+                .maximumAmount(BigDecimal.valueOf(5000))
+                .interestRate(5)
+                .automaticValidation(true)
                 .build();
 
         when(mapperMock.mapBuilder(eq(entity), eq(LoanTypes.LoanTypesBuilder.class)))
@@ -61,12 +61,12 @@ class LoanTypeReactiveRepositoryAdapterTest {
         LoanTypeReactiveRepositoryAdapter adapter =
                 new LoanTypeReactiveRepositoryAdapter(repoMock, mapperMock);
 
-        StepVerifier.create(adapter.findByloanTypeId("loan01"))
+        StepVerifier.create(adapter.findByloanType("loan01"))
                 .expectNextMatches(result ->
                         result.getLoanTypeId().equals("loan01")
                                 && result.getName().equals("Préstamo Personal")
-                                && result.getInterest_rate().equals(0.05)
-                                && result.getAutomatic_validation()
+                                && result.getInterestRate().equals(5)
+                                && result.getAutomaticValidation()
                 )
                 .verifyComplete();
 

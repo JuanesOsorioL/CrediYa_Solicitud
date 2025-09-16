@@ -79,7 +79,7 @@ class SolicitudDtoTest {
 
         Set<ConstraintViolation<SolicitudDto>> violations = validator.validate(dto);
         assertThat(violations).anySatisfy(v -> {
-            assertThat(v.getPropertyPath().toString()).isEqualTo("document_id");
+            assertThat(v.getPropertyPath().toString()).isEqualTo("documentId");
             assertThat(v.getMessage()).isEqualTo("USR_001");
         });
     }
@@ -98,7 +98,7 @@ class SolicitudDtoTest {
 
         Set<ConstraintViolation<SolicitudDto>> violations = validator.validate(dto);
         assertThat(violations).anySatisfy(v -> {
-            assertThat(v.getPropertyPath().toString()).isEqualTo("state_id");
+            assertThat(v.getPropertyPath().toString()).isEqualTo("stateId");
             assertThat(v.getMessage()).isEqualTo("USR_004");
         });
     }

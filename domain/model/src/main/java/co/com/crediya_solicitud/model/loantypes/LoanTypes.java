@@ -13,13 +13,13 @@ import java.math.BigDecimal;
 public class LoanTypes {
     private String loanTypeId;
     private String name;
-    private BigDecimal minimum_amount;
-    private BigDecimal maximum_amount;
-    private Double interest_rate;
-    private Boolean automatic_validation;
+    private BigDecimal minimumAmount;
+    private BigDecimal maximumAmount;
+    private Integer interestRate;
+    private Boolean automaticValidation;
 
     public boolean isValidAmount(BigDecimal amount) {
-        return amount.compareTo(minimum_amount) >= 0 &&
-                amount.compareTo(maximum_amount) <= 0;
+        return amount.compareTo(minimumAmount) >= 0 &&
+                amount.compareTo(maximumAmount) <= 0;
     }
 }

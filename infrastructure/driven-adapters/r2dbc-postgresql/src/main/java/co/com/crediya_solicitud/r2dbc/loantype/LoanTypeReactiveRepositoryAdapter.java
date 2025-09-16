@@ -18,7 +18,7 @@ public class LoanTypeReactiveRepositoryAdapter
     }
 
     @Override
-    public Mono<LoanTypes> findByloanTypeId(String loanTypeId) {
+    public Mono<LoanTypes> findByloanType(String loanTypeId) {
         return repository.findByLoanTypeId(loanTypeId);
     }
 }
