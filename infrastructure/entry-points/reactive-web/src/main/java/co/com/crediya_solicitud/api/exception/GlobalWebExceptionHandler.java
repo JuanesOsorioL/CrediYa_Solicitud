@@ -7,6 +7,8 @@ import co.com.crediya_solicitud.model.exception.DomainException;
 import co.com.crediya_solicitud.model.exception.ExternalServiceException;
 import co.com.crediya_solicitud.model.exception.SolicitudErrorCode;
 import co.com.crediya_solicitud.usecase.exception.SolicitudValidationException;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.codec.HttpMessageWriter;
 import org.springframework.stereotype.Component;
@@ -24,6 +26,7 @@ import java.util.stream.Stream;
 
 
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class GlobalWebExceptionHandler implements WebExceptionHandler {
 
 

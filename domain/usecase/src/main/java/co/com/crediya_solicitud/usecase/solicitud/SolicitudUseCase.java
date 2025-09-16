@@ -82,14 +82,14 @@ public class SolicitudUseCase implements SolicitudService {
                 logger.info("Página vacía: total=" + total + ", offset=" + offset + ",");
                 return Flux.empty();
             }
-            // Si aún no paginas en BD, usa skip/take sobre el stream ordenado en BD
+            // buscar las solicitudes de ese o esos estados
             return solicitudRepository.findAllForReview(status)
                     .doOnSubscribe(s -> logger.info("Buscando solicitudes para revisión. status=" + status + " "))
                     .skip(offset)
                     .take(sz);
-        }).cache(); // lo reutilizamos abajo
+        }).cache();
 
-        // === Enriquecimientos ===
+        //recolecta todos los email
         Mono<Set<String>> emailsMono = base
                 .map(Solicitud::getEmail)
                 .map(this::normalizeEmail)
@@ -118,12 +118,12 @@ public class SolicitudUseCase implements SolicitudService {
                                 .map(s -> reactor.util.function.Tuples.of(
                                         normalizeEmail(s.getEmail()),
                                         s.getAmount() == null ? BigDecimal.ZERO : s.getAmount()))
-                                .filter(t -> t.getT1() != null && emails.contains(t.getT1()))
-                                .groupBy(reactor.util.function.Tuple2::getT1)
+                                .filter(t -> t.getT1() != null && emails.contains(t.getT1()))//solo quedan las del email
+                                .groupBy(reactor.util.function.Tuple2::getT1)//agrupa por email
                                 .flatMap(g -> g
-                                        .map(reactor.util.function.Tuple2::getT2)
-                                        .reduce(BigDecimal.ZERO, BigDecimal::add)
-                                        .map(sum -> reactor.util.function.Tuples.of(g.key(), sum)))
+                                        .map(reactor.util.function.Tuple2::getT2)//los montos de ese email
+                                        .reduce(BigDecimal.ZERO, BigDecimal::add)//suma todos los montos
+                                        .map(sum -> reactor.util.function.Tuples.of(g.key(), sum)))//email-monto
                                 .collectMap(t -> t.getT1(), t -> t.getT2())
                 ).doOnNext(map -> logger.info("deudaByEmail size= " + map.size() + " "));
 

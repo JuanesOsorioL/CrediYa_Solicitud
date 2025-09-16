@@ -93,6 +93,7 @@ public class RestConsumer implements UserGateway {
                 .doOnNext(email -> logger.info("RestConsumer -> getUsersByEmails : Se retorna a UseCase el email" + email + " "));
     }
 
+
     @Override
     public Mono<Map<String, User>> getUsersByEmails(Set<String> emails) {
         logger.info("RestConsumer -> getUsersByEmails : Se realiza el llamado al Micro de Auth");

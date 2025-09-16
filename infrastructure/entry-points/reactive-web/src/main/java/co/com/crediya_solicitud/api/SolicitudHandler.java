@@ -49,7 +49,7 @@ public class SolicitudHandler {
     private SolicitudErrorCode mapMessageToErrorCode(String code) {
         return SolicitudErrorCode.fromCode(code);
     }
-
+//primero
     public Mono<ServerResponse> createSolicitud(ServerRequest request) {
         logger.info("SolicitudHandler -> createSolicitud : inicia el flujo.");
         String header = request.headers().header("Authorization").stream()
@@ -102,7 +102,7 @@ public class SolicitudHandler {
                         responseSolicitudDto
                 )).doOnSuccess(dto -> logger.info("SolicitudHandler -> createSolicitud : Usuario creado exitosamente"));
     }
-
+//segundo
     public Mono<ServerResponse> findAll(ServerRequest request) {
         String rawToken = extraerToken(request);
 
@@ -125,7 +125,7 @@ public class SolicitudHandler {
 
         Mono<Void> authFlow = flujoAuth(rawToken, request).then();
 
-        // 1) Autenticar, 2) contar, 3) validar rango, 4) traer página
+        // Autenticar, contar, validar rango, traer página
         int finalSize = size;
         int finalPage = page;
         return authFlow.then(
@@ -137,7 +137,7 @@ public class SolicitudHandler {
                                 return apiResponseBuilder.build(HttpStatus.OK, "No hay resultados para el estado solicitado", empty);
                             }
                             int totalPages = (int) Math.ceil((double) total / finalSize);
-                            if (offset >= total) {
+                            if (offset >= total) {//paginacion fuera de rango
                                 Map<String, Object> payload = Map.of(
                                         "status", statuses.toString(),
                                         "pageSolicitada", finalPage,
@@ -154,7 +154,7 @@ public class SolicitudHandler {
                                 );
                             }
 
-                            // Rango OK → traemos la página y mapeamos a DTO
+                            // Rango OK, traemos la página y mapeamos a DTO
                             return solicitudService.getSolicitudByRevision(statuses, finalPage, finalSize)
                                     .contextWrite(ctx -> ctx.put(AuthContext.TOKEN_KEY, rawToken))
                                     .map(solicitudDtoMapper::toSolicitudRevision)
