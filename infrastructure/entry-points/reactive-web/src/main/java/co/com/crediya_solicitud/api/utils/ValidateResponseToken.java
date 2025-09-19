@@ -1,8 +1,7 @@
 package co.com.crediya_solicitud.api.utils;
 
+import co.com.crediya_solicitud.api.dto.ClaismoDto;
 import co.com.crediya_solicitud.api.logger.GlobalLogger;
-import co.com.crediya_solicitud.model.claims.ClaismoDto;
-import co.com.crediya_solicitud.model.exception.specificexceptions.BadRequestException;
 import co.com.crediya_solicitud.model.exception.specificexceptions.ForbiddenException;
 import co.com.crediya_solicitud.model.exception.specificexceptions.UnauthorizedException;
 import lombok.AllArgsConstructor;
@@ -15,65 +14,51 @@ import static co.com.crediya_solicitud.model.exception.SolicitudErrorCode.*;
 @AllArgsConstructor
 public class ValidateResponseToken {
 
+    public static final String VALIDANDO_CLAIMS_DTO = "ValidateResponseToken -> validate : validando ClaimsDto";
+    public static final String DTO_VALIDO = "ValidateResponseToken -> validate : ClaimsDto válido";
+    public static final String NO_ERES_UN_CLIENTE_ERES_UN = "ValidateResponseToken -> requireRole : No eres un cliente eres un : ";
+    public static final String ROL_OK = "ValidateResponseToken -> requireRole : rol OK : ";
+    public static final String NO_ERES_EL_MISMO_CLIENTE = "ValidateResponseToken -> isOwner : intento ajeno  no eres el mismo cliente ";
+    public static final String CLIENTE_OK = "ValidateResponseToken -> isOwner : Eres el mismo cliente -> OK";
     private final GlobalLogger logger;
     private static final String ROLE_CUSTOMER = "Customer";
     private static final String ROLE_ADVISER = "Adviser";
 
-
-    public Mono<ClaismoDto> validate(ClaismoDto claims) {
-        return Mono.defer(() -> Mono.justOrEmpty(claims))
-                .doOnSubscribe(s -> logger.info("ValidateResponseToken->validate: validando ClaimsDto"))
+    public Mono<ClaismoDto> validate(ClaismoDto claismoDto) {
+        return Mono.justOrEmpty(claismoDto)
+                .doOnSubscribe(s -> logger.info(VALIDANDO_CLAIMS_DTO))
                 .switchIfEmpty(Mono.error(new UnauthorizedException(TOKEN_INVALID)))
-                .doOnNext(c -> logger.info("ValidateResponseToken->validate: ClaimsDto válido"));
+                .doOnNext(c -> logger.info(DTO_VALIDO));
     }
 
-    public Mono<ClaismoDto> isCustomer(ClaismoDto claims) {
-        return requireRole(claims, ROLE_CUSTOMER);
+    public Mono<ClaismoDto> requireRole(ClaismoDto claismoDto, String requiredRole) {
+        var code = requiredRole.equalsIgnoreCase(ROLE_CUSTOMER)
+                ? AUTHORIZED_ONLY_CUSTOMER
+                : AUTHORIZED_ONLY_ADVISER;
+
+        return validate(claismoDto)
+                .filter(c -> requiredRole.equalsIgnoreCase(c.Rol()))
+                .switchIfEmpty(Mono.defer(() -> {
+                    logger.info(NO_ERES_UN_CLIENTE_ERES_UN + claismoDto.Rol());
+                    return Mono.error(new ForbiddenException(code));
+                })).doOnNext(c -> logger.info(ROL_OK + c.Rol()));
     }
 
-    public Mono<ClaismoDto> isAdviser(ClaismoDto claims) {
-        return requireRole(claims, ROLE_ADVISER);
+    public Mono<ClaismoDto> isCustomer(ClaismoDto claismoDto) {
+        return requireRole(claismoDto, ROLE_CUSTOMER);
     }
 
-    public Mono<ClaismoDto> requireRole(ClaismoDto claims, String requiredRole) {
-        return validate(claims)
-                .handle((c, sink) -> {
-                    if (!requiredRole.equalsIgnoreCase(safe(c.Rol()))) {
-                        var code = requiredRole.equalsIgnoreCase("Customer")
-                                ? AUTHORIZED_ONLY_CUSTOMER
-                                : AUTHORIZED_ONLY_ADVISER;
-                        sink.error(new ForbiddenException(code));
-                    } else {
-                        sink.next(c);
-                    }
-                })
-                .cast(ClaismoDto.class)
-                .doOnNext(c -> logger.info("ValidateResponseToken->requireRole: rol OK: " + c.Rol() + " "));
+    public Mono<ClaismoDto> isAdviser(ClaismoDto claismoDto) {
+        return requireRole(claismoDto, ROLE_ADVISER);
     }
 
-    private static String safe(String s) {
-        return s == null ? "" : s;
+    public Mono<ClaismoDto> isOwner(ClaismoDto claismoDto, String documentoSolicitud) {
+        return Mono.just(claismoDto)
+                .filter(c -> c.Document().equals(documentoSolicitud))
+                .switchIfEmpty(Mono.defer(() -> {
+                    logger.info(NO_ERES_EL_MISMO_CLIENTE + "( Login = { " + claismoDto.Document() + " }, solicitud = { " + documentoSolicitud + " } )");
+                    return Mono.error(new ForbiddenException(JUST_FOR_YOU));
+                }))
+                .doOnNext(dto -> logger.info(CLIENTE_OK));
     }
-
-
-    public Mono<ClaismoDto> isOwner(ClaismoDto claims, String documentoSolicitud) {
-        return Mono.defer(() -> {
-            logger.info("ValidateResponseToken->isOwner: validando si es el mismo cliente");
-            if (documentoSolicitud == null || documentoSolicitud.isBlank()) {
-                return Mono.error(new BadRequestException(CLAIMS_DOCUMENT_NULL)); // 400
-            }
-            return Mono.just(claims)
-                    .handle((c, sink) -> {
-                        if (!safe(c.Document()).equals(documentoSolicitud)) {
-                            logger.info("ValidateResponseToken->isOwner: intento ajeno (claim=" + c.Document() + ", req=" + documentoSolicitud + ")");
-                            sink.error(new ForbiddenException(JUST_FOR_YOU)); // 403
-                        } else {
-                            sink.next(c);
-                        }
-                    })
-                    .cast(ClaismoDto.class)
-                    .doOnNext(c -> logger.info("ValidateResponseToken->isOwner: ownership OK"));
-        });
-    }
-
 }

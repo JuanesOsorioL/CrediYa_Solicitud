@@ -179,7 +179,7 @@ class SolicitudUseCaseTest {
         when(stateUseCase.findAll()).thenReturn(Flux.just(st));
 
         User u = new User("1112", "Ana", "Perez", null, null, "1111", "user1@mail.com", "ddsdsds", "Customer", new BigDecimal("2000"));
-        when(userGateway.getUsersByEmails(eq(Set.of("user1@mail.com"))))
+        when(userGateway.getUsersByEmails(eq(List.of("user1@mail.com"))))
                 .thenReturn(Mono.just(Map.of("user1@mail.com", u)));
 
         var approvedStatus = List.of("estado-004");
@@ -209,7 +209,7 @@ class SolicitudUseCaseTest {
         verify(solicitudRepository).findAllForReview(eq(status));
         verify(loanTypesUseCase).findAll();
         verify(stateUseCase).findAll();
-        verify(userGateway).getUsersByEmails(eq(Set.of("user1@mail.com")));
+        verify(userGateway).getUsersByEmails(eq(List.of("user1@mail.com")));
         verify(solicitudRepository).findAllForReview(eq(approvedStatus));
     }
 
@@ -223,7 +223,7 @@ class SolicitudUseCaseTest {
 
         when(loanTypesUseCase.findAll()).thenReturn(Flux.empty());
         when(stateUseCase.findAll()).thenReturn(Flux.empty());
-        when(userGateway.getUsersByEmails(anySet())).thenReturn(Mono.just(Map.of()));
+        when(userGateway.getUsersByEmails(anyList())).thenReturn(Mono.just(Map.of()));
         when(solicitudRepository.findAllForReview(eq(List.of("estado-004")))).thenReturn(Flux.empty());
 
         StepVerifier.create(useCase.getSolicitudByRevision(status, 0, 10))
@@ -241,7 +241,7 @@ class SolicitudUseCaseTest {
 
         when(loanTypesUseCase.findAll()).thenReturn(Flux.empty());
         when(stateUseCase.findAll()).thenReturn(Flux.empty());
-        when(userGateway.getUsersByEmails(anySet())).thenReturn(Mono.just(Map.of()));
+        when(userGateway.getUsersByEmails(anyList())).thenReturn(Mono.just(Map.of()));
         when(solicitudRepository.findAllForReview(eq(List.of("estado-004")))).thenReturn(Flux.empty());
 
         StepVerifier.create(useCase.getSolicitudByRevision(status, 1, 10))

@@ -20,6 +20,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -73,7 +74,7 @@ class RestConsumerTest {
                         }
                         """));
 
-        var mono = restConsumer.validateTokenAndGetClaims("abc123");
+        var mono = restConsumer.validateTokenAndGetClaims();
 
         StepVerifier.create(mono)
                 .assertNext(claims -> {
@@ -104,7 +105,7 @@ class RestConsumerTest {
                         }
                         """));
 
-        var mono = restConsumer.validateTokenAndGetClaims("bad-token");
+        var mono = restConsumer.validateTokenAndGetClaims();
 
         StepVerifier.create(mono)
                 .expectErrorSatisfies(ex -> {
@@ -179,7 +180,7 @@ class RestConsumerTest {
         Mockito.when(mockMapper.toDomain(any()))
                 .thenReturn(userAna, userBob);
 
-        var mono = restConsumer.getUsersByEmails(Set.of("ana@mail.com", "bob@mail.com"));
+        var mono = restConsumer.getUsersByEmails(List.of("ana@mail.com", "bob@mail.com"));
 
         StepVerifier.create(mono)
                 .assertNext(map -> {
@@ -201,7 +202,7 @@ class RestConsumerTest {
                         {"status":502, "code":"AUTH_DN", "message":"Downstream", "body":["micro caído"]}
                         """));
 
-        var mono = restConsumer.getUsersByEmails(Set.of("a@b.com"));
+        var mono = restConsumer.getUsersByEmails(List.of("a@b.com"));
 
         StepVerifier.create(mono)
                 .expectErrorSatisfies(ex -> {

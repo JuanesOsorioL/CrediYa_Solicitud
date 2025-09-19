@@ -21,6 +21,7 @@ public enum SolicitudErrorCode {
     AUTH("USR_009", "Error en el micro de Auth"),
     AMOUNT_INVALID("USR_010", "El valor del monto(amount), no se encuentra entre en el rango del tipo de préstamo"),
     TOKEN_INVALID("USR_015", "Token invalido"),
+    TOKEN_EMPTY("USR_020", "Token no proporcionado"),
     AUTHORIZED_ONLY_CUSTOMER("USR_016", "No tiene permisos, No eres un Cliente"),
     CLAIMS_DOCUMENT_NULL("USR_017", "EL Claims o el Documento son nulos, verificar"),
     JUST_FOR_YOU("USR_018", "Solo pueda crear solicitudes de préstamo para ti mismo."),

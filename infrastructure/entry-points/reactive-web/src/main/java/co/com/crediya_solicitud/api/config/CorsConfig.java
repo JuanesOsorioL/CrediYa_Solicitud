@@ -3,23 +3,39 @@ package co.com.crediya_solicitud.api.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Configuration
 public class CorsConfig {
 
+    private final Environment env;
+
+    public CorsConfig(Environment env) {
+        this.env = env;
+    }
+
     @Bean
     CorsWebFilter corsWebFilter(@Value("${cors.allowed-origins}") String origins) {
+
+        String allowedOrigins = env.getProperty("cors.allowed-origins",
+                "http://localhost:4200,http://localhost:8080,http://localhost:8083");
         CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Origin", "Accept"));
+        config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
-        config.setAllowedOrigins(List.of(origins.split(",")));
-        config.setAllowedMethods(Arrays.asList("POST", "GET"));
-        config.setAllowedHeaders(List.of(CorsConfiguration.ALL));
+
+
+//        config.setAllowCredentials(true);
+//        config.setAllowedOrigins(List.of(origins.split(",")));
+//        config.setAllowedMethods(Arrays.asList("POST", "GET"));
+//        config.setAllowedHeaders(List.of(CorsConfiguration.ALL));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

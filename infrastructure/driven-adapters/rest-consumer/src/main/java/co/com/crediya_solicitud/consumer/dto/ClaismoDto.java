@@ -1,4 +1,4 @@
-package co.com.crediya_solicitud.model.claims;
+package co.com.crediya_solicitud.consumer.dto;
 
 public record ClaismoDto(
                 String FistName,

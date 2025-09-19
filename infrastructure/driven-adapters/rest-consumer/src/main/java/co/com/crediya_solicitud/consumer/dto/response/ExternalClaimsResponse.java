@@ -1,9 +1,11 @@
 package co.com.crediya_solicitud.consumer.dto.response;
 
-public record ExternalClaimsResponse<T>(
+import co.com.crediya_solicitud.consumer.dto.ClaismoDto;
+
+public record ExternalClaimsResponse(
         int status,
         String code,
         String message,
-        T body
+        ClaismoDto body
 ) {
 }

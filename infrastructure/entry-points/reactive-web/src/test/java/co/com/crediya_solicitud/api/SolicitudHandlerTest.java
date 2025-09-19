@@ -1,5 +1,6 @@
 package co.com.crediya_solicitud.api;
 
+import co.com.crediya_solicitud.api.dto.ClaismoDto;
 import co.com.crediya_solicitud.api.dto.SolicitudDto;
 import co.com.crediya_solicitud.api.dto.SolicitudResponseDto;
 import co.com.crediya_solicitud.api.dto.SolicitudRevisionDto;
@@ -7,7 +8,7 @@ import co.com.crediya_solicitud.api.logger.GlobalLogger;
 import co.com.crediya_solicitud.api.mapper.SolicitudDtoMapper;
 import co.com.crediya_solicitud.api.utils.ApiResponseBuilder;
 import co.com.crediya_solicitud.api.utils.ValidateResponseToken;
-import co.com.crediya_solicitud.model.claims.ClaismoDto;
+import co.com.crediya_solicitud.model.claims.Claismo;
 import co.com.crediya_solicitud.model.exception.ExternalServiceException;
 import co.com.crediya_solicitud.model.solicitud.gateways.UserGateway;
 import co.com.crediya_solicitud.model.solicitud_revision.SolicitudRevision;
@@ -85,12 +86,15 @@ class SolicitudHandlerTest {
                 "juan", "a@b.com", "Admin", "fecha", "esteban", "1111111", "fecha", "aaaa"
         );
 
+        Claismo claims = new Claismo("asesor", "adv@test.com", "Adviser", "f", "n", "doc", "f", "id");
+
+
         ConstraintViolation<SolicitudDto> violation = mock(ConstraintViolation.class);
         when(violation.getMessage()).thenReturn("USR_007");
         when(validator.validate(any(SolicitudDto.class))).thenReturn(Set.of(violation));
 
-        when(userGateway.validateTokenAndGetClaims(anyString()))
-                .thenReturn(Mono.just(claismoDto));
+        when(userGateway.validateTokenAndGetClaims())
+                .thenReturn(Mono.just(claims));
         when(validateResponseToken.isCustomer(any()))
                 .thenAnswer(inv -> Mono.just(inv.getArgument(0)));
         when(validateResponseToken.isOwner(any(), anyString()))
@@ -141,9 +145,10 @@ class SolicitudHandlerTest {
     @Test
     void findAll_returns_200_with_page_content() {
 
-        ClaismoDto claims = new ClaismoDto("asesor", "adv@test.com", "Adviser", "f", "n", "doc", "f", "id");
-        when(userGateway.validateTokenAndGetClaims(anyString())).thenReturn(Mono.just(claims));
-        when(validateResponseToken.isAdviser(any())).thenReturn(Mono.just(claims));
+        ClaismoDto claimsDto = new ClaismoDto("asesor", "adv@test.com", "Adviser", "f", "n", "doc", "f", "id");
+        Claismo claims = new Claismo("asesor", "adv@test.com", "Adviser", "f", "n", "doc", "f", "id");
+        when(userGateway.validateTokenAndGetClaims()).thenReturn(Mono.just(claims));
+        when(validateResponseToken.isAdviser(any())).thenReturn(Mono.just(claimsDto));
 
         SolicitudRevision solicitudRevision1 = new SolicitudRevision(BigDecimal.TEN, 3, "sol-1", "juan", "DOC-1", 12, "mail@test.com", BigDecimal.TEN, BigDecimal.TEN);
         SolicitudRevision solicitudRevision2 = new SolicitudRevision(BigDecimal.ONE, 6, "sol-2", "maria", "DOC-2", 10, "maria@test.com", BigDecimal.ONE, BigDecimal.ZERO);
@@ -180,9 +185,10 @@ class SolicitudHandlerTest {
 
     @Test
     void findAll_returns_200_when_no_results() {
-        ClaismoDto claims = new ClaismoDto("asesor", "adv@test.com", "Adviser", "f", "n", "doc", "f", "id");
-        when(userGateway.validateTokenAndGetClaims(anyString())).thenReturn(Mono.just(claims));
-        when(validateResponseToken.isAdviser(any())).thenReturn(Mono.just(claims));
+        ClaismoDto claimsDto = new ClaismoDto("asesor", "adv@test.com", "Adviser", "f", "n", "doc", "f", "id");
+        Claismo claims = new Claismo("asesor", "adv@test.com", "Adviser", "f", "n", "doc", "f", "id");
+        when(userGateway.validateTokenAndGetClaims()).thenReturn(Mono.just(claims));
+        when(validateResponseToken.isAdviser(any())).thenReturn(Mono.just(claimsDto));
 
         when(solicitudService.countByStatus(anyList())).thenReturn(Mono.just(0L));
         when(apiResponseBuilder.build(eq(HttpStatus.OK), contains("No hay resultados"), any()))
@@ -201,9 +207,10 @@ class SolicitudHandlerTest {
 
     @Test
     void findAll_returns_400_when_page_out_of_range() {
-        ClaismoDto claims = new ClaismoDto("asesor", "adv@test.com", "Adviser", "f", "n", "doc", "f", "id");
-        when(userGateway.validateTokenAndGetClaims(anyString())).thenReturn(Mono.just(claims));
-        when(validateResponseToken.isAdviser(any())).thenReturn(Mono.just(claims));
+        ClaismoDto claimsDto = new ClaismoDto("asesor", "adv@test.com", "Adviser", "f", "n", "doc", "f", "id");
+        Claismo claims = new Claismo("asesor", "adv@test.com", "Adviser", "f", "n", "doc", "f", "id");
+        when(userGateway.validateTokenAndGetClaims()).thenReturn(Mono.just(claims));
+        when(validateResponseToken.isAdviser(any())).thenReturn(Mono.just(claimsDto));
 
         when(solicitudService.countByStatus(anyList())).thenReturn(Mono.just(5L));
         when(apiResponseBuilder.build(eq(HttpStatus.BAD_REQUEST), contains("fuera de rango"), any()))
@@ -222,9 +229,10 @@ class SolicitudHandlerTest {
     @Test
     void findAll_normalizes_page_and_size_and_calls_revision_with_defaults() {
 
-        ClaismoDto claims = new ClaismoDto("asesor", "adv@test.com", "Adviser", "f", "n", "doc", "f", "id");
-        when(userGateway.validateTokenAndGetClaims(anyString())).thenReturn(Mono.just(claims));
-        when(validateResponseToken.isAdviser(any())).thenReturn(Mono.just(claims));
+        ClaismoDto claimsDto = new ClaismoDto("asesor", "adv@test.com", "Adviser", "f", "n", "doc", "f", "id");
+        Claismo claims = new Claismo("asesor", "adv@test.com", "Adviser", "f", "n", "doc", "f", "id");
+        when(userGateway.validateTokenAndGetClaims()).thenReturn(Mono.just(claims));
+        when(validateResponseToken.isAdviser(any())).thenReturn(Mono.just(claimsDto));
 
         when(solicitudService.countByStatus(anyList())).thenReturn(Mono.just(1L));
         when(solicitudService.getSolicitudByRevision(anyList(), anyInt(), anyInt()))
@@ -278,7 +286,7 @@ class SolicitudHandlerTest {
     void findAll_maps_external_service_exception_to_400() {
         ExternalServiceException ex = mock(ExternalServiceException.class);
         doReturn(List.of(Map.of("error", "downstream"))).when(ex).getBody();
-        when(userGateway.validateTokenAndGetClaims(anyString())).thenReturn(Mono.error(ex));
+        when(userGateway.validateTokenAndGetClaims()).thenReturn(Mono.error(ex));
 
         doReturn(Mono.just(0L)).when(solicitudService).countByStatus(anyList());
         doReturn(Flux.empty()).when(solicitudService)

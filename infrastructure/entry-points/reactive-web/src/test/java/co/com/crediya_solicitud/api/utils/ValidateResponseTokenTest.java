@@ -1,7 +1,8 @@
 package co.com.crediya_solicitud.api.utils;
 
+import co.com.crediya_solicitud.api.dto.ClaismoDto;
 import co.com.crediya_solicitud.api.logger.GlobalLogger;
-import co.com.crediya_solicitud.model.claims.ClaismoDto;
+import co.com.crediya_solicitud.model.claims.Claismo;
 import co.com.crediya_solicitud.model.exception.specificexceptions.BadRequestException;
 import co.com.crediya_solicitud.model.exception.specificexceptions.ForbiddenException;
 import co.com.crediya_solicitud.model.exception.specificexceptions.UnauthorizedException;
