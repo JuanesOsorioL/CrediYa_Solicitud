@@ -1,7 +1,7 @@
 package co.com.crediya_solicitud.r2dbc.entities;
 
 
-import jakarta.persistence.Id;
+import org.springframework.data.annotation.Id;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

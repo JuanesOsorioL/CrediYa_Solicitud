@@ -29,6 +29,7 @@ public enum SolicitudErrorCode {
     SOLICITUD_NOT_EXIST("USR_021", "No existe una solicitud con ese ID"),
     SOLICITUD_HAVE_OTHER_STATUS("USR_022", "La solicitud tiene otro estado diferente a Pendiente de revisión o Revision manual"),
     BAD_ESTATUS_ID("USR_024", "El estado debe ser 'estado-002' o 'estado-004'"),
+    ERROR_CREATE_JSON("USR_025", "Error al crear el json para enviar a SQS"),
     LOAN_TYPE_NOT_REGISTERED("USR_005", "El tipo de préstamo no está registrado");
 
     private final String code;

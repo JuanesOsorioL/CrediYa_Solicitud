@@ -31,37 +31,62 @@ public class ReceiveConsumer {
                 .doOnError(e -> logger.error("ReceiveConsumer -> start :  Error en stream de callback", e))
                 .subscribe();
     }
-
     private Mono<Void> processMessage(Message msg) {
-        logger.info("ReceiveConsumer -> processMessage : inicia el proceso de capturacion del mensaje");
         final String receipt = msg.receiptHandle();
+        logger.info("ReceiveConsumer -> processMessage : recibido id = "+msg.messageId()+" body = "+msg.body()+" ");
 
-        try {
-            // 👇 deserializa el JSON del body a tu record Decision
-            Decision d = mapper.readValue(msg.body(), Decision.class);
+        return Mono.fromCallable(() -> mapper.readValue(msg.body(), Decision.class))
+                .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                .doOnNext(d -> logger.info("Decision deserializada : solicitudId = "+d.solicitudId()+", stateId = "+d.stateId()+", email = "+d.email()+" "))
 
-            // ahora puedes usarlo normalmente
-            logger.info("Decision recibida -> solicitudId= " + d.solicitudId() + ", stateId=" + d.stateId() + ", email= " + d.email());
+                .flatMap(d -> {
+                    boolean tieneError = (d.error() != null && !d.error().isBlank()) || d.codError() != 0;
+                    if (tieneError) {
+                        logger.warn("Decision llega con error upstream: error = "+d.error()+", codError "+d.codError()+" ");
 
-            // aquí puedes llamar tu servicio de dominio:
-            // sqsReceiveGateway.updateStateOfSolicitud(d);
+                        return callbackService.delete(receipt)
+                                .doOnSuccess(v -> logger.info("Mensaje borrado (upstream con error). id= "+msg.messageId()+" "))
+                                .then();
+                    }
 
-            // sqsReceiveGateway.updateStateOfSolicitud(msg.body())
-            logger.info("ReceiveConsumer -> processMessage : Mensaje recibido: id = " + msg.messageId() + " , body = " + msg.body() + " , mensaje completo = " + msg.toString());
+                    return sqsReceiveGateway.updateStateOfSolicitud(d)
+                            .then(callbackService.delete(receipt))
+                            .doOnSuccess(v -> logger.info("Mensaje borrado tras actualizar. id = "+msg.messageId()+" "));
+                })
 
-
-        } catch (Exception e) {
-            logger.error("Error deserializando mensaje SQS a Decision", e);
-            // opcional: decidir si borras el mensaje o lo dejas para reintento
-        }
-
-
-        return callbackService.delete(receipt)
-                .doOnSuccess(v -> logger.info("ReceiveConsumer -> processMessage : SQS (mensaje borrado). id = " + msg.messageId()))
-
-                .onErrorResume(ex -> {
-                    logger.error("ReceiveConsumer -> processMessage : No se pudo borrar el mensaje. id = " + msg.messageId(), ex);
+                .onErrorResume(e -> {
+                    logger.error("Fallo procesando mensaje id = "+msg.messageId()+" . Se dejará para reintento." + e);
                     return Mono.empty();
                 });
     }
+
+
+
+
+
+//
+//    private Mono<Void> processMessage(Message msg) {
+//        logger.info("ReceiveConsumer -> processMessage : Se inicia el proceso de captura del mensaje");
+//        final String receipt = msg.receiptHandle();
+//        logger.info("ReceiveConsumer -> processMessage : Mensaje recibido: id = " + msg.messageId() + " , body = " + msg.body() + " , mensaje completo = " + msg.toString());
+//
+//        try {
+//            Decision decision = mapper.readValue(msg.body(), Decision.class);
+//            logger.info("Decision recibida -> processMessage = se deserializa el mensaje a Decision " + decision.solicitudId() + ", stateId=" + decision.stateId() + ", email= " + decision.email());
+//            Mono<Void> hola=updateStateOfSolicitud(decision);
+//
+//
+//        } catch (Exception e) {
+//            logger.error("ReceiveConsumer -> processMessage : Error deserializa mensaje SQS a Decision", e);
+//        }
+//
+//
+//        return callbackService.delete(receipt)
+//                .doOnSuccess(v -> logger.info("ReceiveConsumer -> processMessage : SQS (mensaje borrado). id = " + msg.messageId()))
+//                .onErrorResume(ex -> {
+//                    logger.error("ReceiveConsumer -> processMessage : No se pudo borrar el mensaje. id = " + msg.messageId(), ex);
+//                    return Mono.empty();
+//                });
+//    }
+
 }

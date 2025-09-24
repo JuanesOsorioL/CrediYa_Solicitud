@@ -15,8 +15,6 @@ public interface SolicitudReactiveRepository extends ReactiveCrudRepository<Soli
 
     Mono<Long> countByStateIdIn(Collection<String> stateIds);
 
-    Mono<SolicitudEntity> findBySolicitudId(String solicitudId);
-
     Mono<Boolean> existsBySolicitudIdAndStateIdIn(String solicitudId, Collection<String> stateIds);
 
     Mono<SolicitudEntity> findSolicitudEntitiesBySolicitudId(String solicitudId);

@@ -42,7 +42,6 @@ public class SolicitudHandler {
     public static final String AUTHORIZATION = "Authorization";
     private static final String STATE_DEFAULT = "estado-001";
     private static final String BEARER = "Bearer ";
-    public static final String VALIDAR_EL_TOKEN = "SolicitudHandler -> flujoAuth : Token proporcionado, se procede a validar el token";
     public static final String ERRORES_DE_JAKARTA_DEL_REQUEST = "SolicitudHandler -> validarInfra : se verifican los errores de jakarta del request";
     public static final String ERRORES_INFRAESTRUCTURALES_DETECTADOS = "SolicitudHandler -> validarInfra : Errores infraestructurales detectados";
     public static final String ES_UN_CUSTOMER_CLIENTE = "SolicitudHandler -> createSolicitud : es un Customer(cliente)";
@@ -165,7 +164,6 @@ public class SolicitudHandler {
                 );
     }
 
-
     private SolicitudErrorCode mapMessageToErrorCode(String code) {
         return SolicitudErrorCode.fromCode(code);
     }
@@ -185,7 +183,6 @@ public class SolicitudHandler {
                 .map(solicitudDtoMapper::toClaismoDto)
                 .onErrorMap(ExternalServiceException.class, ex ->
                         new SolicitudValidationException(List.of(), List.of(SolicitudErrorCode.AUTH), ex.getBody())
-
                 )
                 .flatMap(roleCheck);
     }

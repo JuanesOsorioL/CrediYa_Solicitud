@@ -116,35 +116,3 @@ resilience4j:
         waitDurationInOpenState: "10s"
 
 
-# ========= Documento perfil API =========
----
-spring:
-  config:
-    activate:
-      on-profile: api
-  main:
-    web-application-type: reactive
-
-# Aquí vinculamos el sender a la cola de NOTIFICACIONES
-adapter:
-  sqs:
-    notifier:
-      queue-url: "https://sqs.us-east-2.amazonaws.com/657258631869/SQS_Notificaciones"
-
-# ========= Documento perfil WORKER =========
----
-spring:
-  config:
-    activate:
-      on-profile: worker
-  main:
-    web-application-type: none
-
-# Aquí el worker escucha la cola de CALLBACK
-adapter:
-  sqs:
-    callback:
-      queue-url: "https://sqs.us-east-2.amazonaws.com/657258631869/SQS_Callback"
-      # Si luego creas otra @ConfigurationProperties para consumo, podrás agregar:
-      wait-time-seconds: 20
-      max-messages: 10

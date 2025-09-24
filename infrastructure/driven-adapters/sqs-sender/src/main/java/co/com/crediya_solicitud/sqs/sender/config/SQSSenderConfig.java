@@ -21,12 +21,6 @@ import java.net.URI;
 @ConditionalOnMissingBean(SqsAsyncClient.class)
 public class SQSSenderConfig {
 
-
-//    @Bean
-//    public MetricPublisher metricPublisher() {
-//        return NoOpMetricPublisher.create();
-//    }
-
     @Bean
     public SqsAsyncClient configSqs(SqsCommonProperties common, MetricPublisher publisher) {
         return SqsAsyncClient.builder()

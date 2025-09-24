@@ -9,7 +9,6 @@ import co.com.crediya_solicitud.model.solicitud.gateways.SolicitudRepository;
 import co.com.crediya_solicitud.model.solicitud.gateways.UserGateway;
 import co.com.crediya_solicitud.model.solicitud_revision.SolicitudRevision;
 import co.com.crediya_solicitud.model.sqs.Decision;
-import co.com.crediya_solicitud.model.sqs.ReceivePayload;
 import co.com.crediya_solicitud.model.sqs.SqsReceiveGateway;
 import co.com.crediya_solicitud.model.state.State;
 import co.com.crediya_solicitud.model.user.User;
@@ -161,7 +160,7 @@ public class SolicitudUseCase implements SolicitudService, SqsReceiveGateway {
 
     @Override
     public Mono<Decision> validateUpdateSolicitud(Decision decision) {
-        logger.info("SolicitudUseCase -> validateUpdateSolicitud : inicia validación (solicitudId = "+decision.solicitudId()+")");
+        logger.info("SolicitudUseCase -> validateUpdateSolicitud : inicia validación (solicitudId = " + decision.solicitudId() + ")");
         final String solicitudId = decision.solicitudId();
         return solicitudRepository.findSolicitud(solicitudId)
                 .switchIfEmpty(Mono.defer(() -> {
@@ -172,7 +171,7 @@ public class SolicitudUseCase implements SolicitudService, SqsReceiveGateway {
                 .flatMap(solicitudActual ->
                         solicitudRepository.solicitudHavethisstatus(solicitudActual.getSolicitudId(), STATES_BY_UPDATE)
                                 .doOnNext(permitido -> logger.info(
-                                        "SolicitudUseCase -> validateUpdateSolicitud : Estado actual permitido? "+permitido+" "))
+                                        "SolicitudUseCase -> validateUpdateSolicitud : Estado actual permitido? " + permitido + " "))
                                 .filter(Boolean::booleanValue)
                                 .switchIfEmpty(Mono.defer(() -> {
                                     logger.info("SolicitudUseCase -> validateUpdateSolicitud : Solicitud no tiene el estado requerido");
@@ -195,44 +194,49 @@ public class SolicitudUseCase implements SolicitudService, SqsReceiveGateway {
 
 
     @Override
-    public Mono<Void> updateStateOfSolicitud(ReceivePayload payload) {
-        final String id = payload.solicitudId();
-        final String newState = payload.newState();
-        logger.info("SolicitudUseCase -> updateStateOfSolicitud : inicia validación para ID : " + id);
-        return solicitudRepository.existSolicitudById(id)
-                .switchIfEmpty(
-                        Mono.fromRunnable(() ->
-                                logger.info("SolicitudUseCase -> updateStateOfSolicitud : No existe solicitud con ID : " + id)
-                        ).then(Mono.empty())
-                )
-                .flatMap(solicitud -> {
-                    final String currentState = solicitud.getStateId();
+    public Mono<Void> updateStateOfSolicitud(Decision decision) {
+        final String id = decision.solicitudId();
+        final String newCodState = decision.stateId();
+        final String newNameState = decision.nameStateId();
 
-                    if (currentState.equals(newState)) {
-                        return stateUseCase.findNameByStateId(currentState)
-                                .defaultIfEmpty(currentState)
-                                .doOnNext(name ->
-                                        logger.info("SolicitudUseCase -> updateStateOfSolicitud : Estado ya es " + currentState + ". No se actualiza. ID :" + id)
+        logger.info("SolicitudUseCase -> updateStateOfSolicitud : inicia validación para ID = " + id);
+
+        return solicitudRepository.findSolicitud(id)
+                .switchIfEmpty(Mono.defer(() -> {
+                    logger.info("SolicitudUseCase -> updateStateOfSolicitud : No existe solicitud con ID = " + id);
+                    return Mono.empty();
+                })).doOnNext(sol -> logger.info("SolicitudUseCase -> updateStateOfSolicitud : se encontro solicitud" + sol))
+                .flatMap(solicitud -> {
+                    final String currentCodState = solicitud.getStateId();
+                    logger.info("SolicitudUseCase -> updateStateOfSolicitud : se valida si la solicitud ya tiene el estado actualizado");
+                    if (currentCodState.equals(newCodState)) {
+                        return stateUseCase.findNameByStateId(currentCodState)
+                                .defaultIfEmpty(currentCodState)
+                                .doOnNext(currentName ->
+                                        logger.info("SolicitudUseCase -> updateStateOfSolicitud : Estado ya es " + currentName + " (" + currentCodState + "). No se actualiza. ID = " + id)
                                 )
                                 .then();
                     }
-                    return Mono.zip(
-                                    stateUseCase.findNameByStateId(currentState).defaultIfEmpty(currentState),
-                                    stateUseCase.findNameByStateId(newState).defaultIfEmpty(newState)
-                            )
+
+                    Mono<String> oldNameMono = stateUseCase.findNameByStateId(currentCodState)
+                            .defaultIfEmpty(currentCodState);
+
+                    Mono<String> newNameMono = Mono.just(newNameState);
+
+                    return Mono.zip(oldNameMono, newNameMono)
                             .flatMap(tuple -> {
                                 String oldName = tuple.getT1();
-                                String newName = tuple.getT2();
-
-                                solicitud.setStateId(newState);
+                                String resolvedNewName = tuple.getT2();
+                                logger.info("SolicitudUseCase -> updateStateOfSolicitud : se actualiza del estado ");
+                                solicitud.setStateId(newCodState);
                                 return solicitudRepository.save(solicitud)
-                                        .doOnSuccess(saved ->
-                                                logger.info(
-                                                        "SolicitudUseCase -> updateStateOfSolicitud : Actualizada ID " + saved.getSolicitudId() + " como quedo : " + currentState + " -> " + newState + " (" + oldName + " -> " + newName + ")"))
+                                        .doOnSuccess(saved -> logger.info(
+                                                "SolicitudUseCase -> updateStateOfSolicitud : Actualizada ID = " + saved.getSolicitudId() + " " + currentCodState + " -> " + newCodState + " ( " + oldName + " -> " + resolvedNewName + " ) "))
                                         .then();
                             });
-                })
-                .doOnError(e -> logger.error("SolicitudUseCase -> updateStateOfSolicitud : error para ID " + id + "  error : " + e))
+                }).then()
+                .doOnError(e -> logger.error("SolicitudUseCase -> updateStateOfSolicitud : error para ID = " + id + "  -> " + e.toString() + " "))
                 .onErrorResume(e -> Mono.empty());
     }
 }
+

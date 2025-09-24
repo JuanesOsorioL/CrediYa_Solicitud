@@ -20,6 +20,4 @@ public interface SolicitudRepository {
 
     Mono<Boolean> solicitudHavethisstatus(String solicitudId, List<String> status);
 
-    Mono<Solicitud> existSolicitudById(String solicitudId);
-
 }

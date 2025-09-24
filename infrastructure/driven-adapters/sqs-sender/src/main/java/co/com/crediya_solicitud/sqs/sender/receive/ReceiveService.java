@@ -4,7 +4,6 @@ package co.com.crediya_solicitud.sqs.sender.receive;
 import co.com.crediya_solicitud.model.logger.Logger;
 import co.com.crediya_solicitud.sqs.sender.config.properties.CallbackProperties;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -17,7 +16,6 @@ import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 import java.time.Duration;
 
 @Component
-@Log4j2
 @RequiredArgsConstructor
 public class ReceiveService {
     private final CallbackProperties callbackProps;
