@@ -2,5 +2,12 @@ dependencies {
     implementation project(':model')
     implementation 'org.springframework.boot:spring-boot-autoconfigure'
     implementation 'org.apache.logging.log4j:log4j-api'
-    implementation 'software.amazon.awssdk:sqs'
+
+    implementation(platform("software.amazon.awssdk:bom:2.32.13"))
+    implementation("software.amazon.awssdk:sqs")
+    implementation("software.amazon.awssdk:metrics-spi")
+
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
+    implementation 'com.fasterxml.jackson.module:jackson-module-parameter-names:2.17.2'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.2'
 }

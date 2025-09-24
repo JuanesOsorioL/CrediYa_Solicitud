@@ -1,6 +1,7 @@
 package co.com.crediya_solicitud.api;
 
 import co.com.crediya_solicitud.api.dto.ClaismoDto;
+import co.com.crediya_solicitud.api.dto.DecisionDto;
 import co.com.crediya_solicitud.api.dto.SolicitudDto;
 import co.com.crediya_solicitud.api.logger.GlobalLogger;
 import co.com.crediya_solicitud.api.mapper.SolicitudDtoMapper;
@@ -11,6 +12,7 @@ import co.com.crediya_solicitud.model.exception.SolicitudErrorCode;
 import co.com.crediya_solicitud.model.exception.specificexceptions.UnauthorizedException;
 import co.com.crediya_solicitud.model.shared_token.AuthContext;
 import co.com.crediya_solicitud.model.solicitud.gateways.UserGateway;
+import co.com.crediya_solicitud.model.sqs.SqsSendGateway;
 import co.com.crediya_solicitud.usecase.exception.SolicitudValidationException;
 import co.com.crediya_solicitud.usecase.solicitud.SolicitudService;
 import jakarta.validation.Validator;
@@ -60,14 +62,14 @@ public class SolicitudHandler {
     private final GlobalLogger logger;
     private final UserGateway userGateway;
     private final ValidateResponseToken validateResponseToken;
+    private final SqsSendGateway sqsSendGateway;
 
 
     //primero
     public Mono<ServerResponse> createSolicitud(ServerRequest request) {
         logger.info("SolicitudHandler -> createSolicitud : inicia el flujo.");
-
         return extraerToken(request)
-                .flatMap(token -> flujoAuthCustomer(request)
+                .flatMap(token -> flujoAuthCustomer()
                         .doOnNext(claimsDto -> logger.info(ES_UN_CUSTOMER_CLIENTE))
                         .flatMap(claimsDto ->
                                 request.bodyToMono(SolicitudDto.class)
@@ -94,6 +96,7 @@ public class SolicitudHandler {
 
                 ).doOnSuccess(dto -> logger.info(CREADO_EXITOSAMENTE));
     }
+
     //segundo
     public Mono<ServerResponse> findAll(ServerRequest request) {
         logger.info("SolicitudHandler -> findAll : inicia el flujo.");
@@ -117,7 +120,8 @@ public class SolicitudHandler {
         int finalSize = size;
         int finalPage = page;
         return extraerToken(request)
-                .flatMap(token -> flujoAuthAdviser(request)
+                .flatMap(token -> flujoAuthAdviser()
+
                         .then(solicitudService.countByStatus(statuses)
                                 .doOnNext(total -> logger.info("countByStatus status=" + statuses + ", total= " + total + " "))
                                 .flatMap(total -> {
@@ -176,29 +180,25 @@ public class SolicitudHandler {
                 .switchIfEmpty(Mono.error(new UnauthorizedException(TOKEN_INVALID)));
     }
 
-    private Mono<ClaismoDto> flujoAuth(ServerRequest request,
-                                       Function<ClaismoDto, Mono<ClaismoDto>> roleCheck) {
-        return extraerToken(request)
-                .doOnNext(t -> logger.info(VALIDAR_EL_TOKEN))
-                .flatMap(rawToken ->
-                        userGateway.validateTokenAndGetClaims()
-                                .map(solicitudDtoMapper::toClaismoDto)
-                                .onErrorMap(ExternalServiceException.class, ex ->
-                                        new SolicitudValidationException(List.of(), List.of(SolicitudErrorCode.AUTH), ex.getBody())
+    private Mono<ClaismoDto> flujoAuth(Function<ClaismoDto, Mono<ClaismoDto>> roleCheck) {
+        return userGateway.validateTokenAndGetClaims()
+                .map(solicitudDtoMapper::toClaismoDto)
+                .onErrorMap(ExternalServiceException.class, ex ->
+                        new SolicitudValidationException(List.of(), List.of(SolicitudErrorCode.AUTH), ex.getBody())
 
-                                )
-                                .flatMap(roleCheck));
+                )
+                .flatMap(roleCheck);
     }
 
-    private Mono<ClaismoDto> flujoAuthCustomer(ServerRequest request) {
-        return flujoAuth(request, validateResponseToken::isCustomer);
+    private Mono<ClaismoDto> flujoAuthCustomer() {
+        return flujoAuth(validateResponseToken::isCustomer);
     }
 
-    private Mono<ClaismoDto> flujoAuthAdviser(ServerRequest request) {
-        return flujoAuth(request, validateResponseToken::isAdviser);
+    private Mono<ClaismoDto> flujoAuthAdviser() {
+        return flujoAuth(validateResponseToken::isAdviser);
     }
 
-    private Mono<SolicitudDto> validarInfra(SolicitudDto dto) {
+    private <T> Mono<T> validarInfra(T dto) {
         logger.info(ERRORES_DE_JAKARTA_DEL_REQUEST);
         return Mono.defer(() -> {
             var infraErrors = validator.validate(dto).stream()
@@ -213,6 +213,32 @@ public class SolicitudHandler {
             }
             return Mono.just(dto);
         });
+    }
+
+    public Mono<ServerResponse> updateSolicitud(ServerRequest request) {
+        logger.info("SolicitudHandler -> updateSolicitud : inicia el flujo.");
+        return extraerToken(request)
+                .flatMap(token ->
+                        flujoAuthAdviser()
+                                .doOnNext(x -> logger.info("SolicitudHandler -> updateSolicitud : es un Asesor"))
+                                .then(request.bodyToMono(DecisionDto.class))
+                                .contextWrite(ctx -> ctx.put(AuthContext.TOKEN_KEY, token))
+                )
+                .doOnNext(dto -> logger.info("SolicitudHandler -> updateSolicitud : DTO recibido: " + dto))
+                .flatMap(this::validarInfra)
+                .doOnNext(dto -> logger.info("SolicitudHandler -> updateSolicitud : validaciones OK"))
+                .map(solicitudDtoMapper::toDecision)
+                .flatMap(solicitudService::validateUpdateSolicitud)
+                .flatMap(sqsSendGateway::notificarCambio)
+                .flatMap(payloadEnviado ->
+                        apiResponseBuilder.build(
+                                HttpStatus.OK,
+                                "Solicitud de actualización enviada exitosamente",
+                                payloadEnviado
+                        )
+                )
+                .doOnSuccess(x -> logger.info("SolicitudHandler -> updateSolicitud : Solicitud de actualización enviada exitosamente"));
+
     }
 
 }

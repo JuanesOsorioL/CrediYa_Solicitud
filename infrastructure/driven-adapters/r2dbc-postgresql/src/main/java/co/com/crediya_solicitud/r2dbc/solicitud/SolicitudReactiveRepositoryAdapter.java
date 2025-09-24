@@ -34,4 +34,19 @@ public class SolicitudReactiveRepositoryAdapter extends ReactiveAdapterOperation
         return repository.countByStateIdIn(stateIds);
     }
 
+    @Override
+    public Mono<Solicitud> findSolicitud(String solicitudId) {
+        return repository.findBySolicitudId(solicitudId).map(this::toEntity);
+    }
+
+    @Override
+    public Mono<Boolean> solicitudHavethisstatus(String solicitudId, List<String> status) {
+        return repository.existsBySolicitudIdAndStateIdIn(solicitudId, status);
+    }
+
+    @Override
+    public Mono<Solicitud> existSolicitudById(String solicitudId) {
+        return repository.findSolicitudEntitiesBySolicitudId(solicitudId).map(this::toEntity);
+    }
+
 }

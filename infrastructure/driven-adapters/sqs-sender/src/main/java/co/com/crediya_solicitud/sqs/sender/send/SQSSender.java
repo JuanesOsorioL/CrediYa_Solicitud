@@ -1,8 +1,9 @@
-package co.com.crediya_solicitud.sqs.sender;
+package co.com.crediya_solicitud.sqs.sender.send;
 
-import co.com.crediya_solicitud.sqs.sender.config.SQSSenderProperties;
+
+import co.com.crediya_solicitud.model.logger.Logger;
+import co.com.crediya_solicitud.sqs.sender.config.properties.NotifierProperties;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
@@ -10,16 +11,16 @@ import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 @Service
-@Log4j2
 @RequiredArgsConstructor
-public class SQSSender /*implements SomeGateway*/ {
-    private final SQSSenderProperties properties;
+public class SQSSender {
+    private final NotifierProperties properties;
     private final SqsAsyncClient client;
+    private final Logger logger;
 
     public Mono<String> send(String message) {
         return Mono.fromCallable(() -> buildRequest(message))
                 .flatMap(request -> Mono.fromFuture(client.sendMessage(request)))
-                .doOnNext(response -> log.debug("Message sent {}", response.messageId()))
+                .doOnNext(response -> logger.info("SQSSender -> send : Message sent " + response.messageId()))
                 .map(SendMessageResponse::messageId);
     }
 

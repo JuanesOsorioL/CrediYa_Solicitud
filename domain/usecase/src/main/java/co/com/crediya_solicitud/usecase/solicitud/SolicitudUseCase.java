@@ -1,11 +1,16 @@
 package co.com.crediya_solicitud.usecase.solicitud;
 
+import co.com.crediya_solicitud.model.exception.SolicitudErrorCode;
+import co.com.crediya_solicitud.model.exception.specificexceptions.ConflictException;
 import co.com.crediya_solicitud.model.loantypes.LoanTypes;
 import co.com.crediya_solicitud.model.logger.Logger;
 import co.com.crediya_solicitud.model.solicitud.Solicitud;
 import co.com.crediya_solicitud.model.solicitud.gateways.SolicitudRepository;
 import co.com.crediya_solicitud.model.solicitud.gateways.UserGateway;
 import co.com.crediya_solicitud.model.solicitud_revision.SolicitudRevision;
+import co.com.crediya_solicitud.model.sqs.Decision;
+import co.com.crediya_solicitud.model.sqs.ReceivePayload;
+import co.com.crediya_solicitud.model.sqs.SqsReceiveGateway;
 import co.com.crediya_solicitud.model.state.State;
 import co.com.crediya_solicitud.model.user.User;
 import co.com.crediya_solicitud.usecase.loantypes.LoanTypesUseCase;
@@ -21,7 +26,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RequiredArgsConstructor
-public class SolicitudUseCase implements SolicitudService {
+public class SolicitudUseCase implements SolicitudService, SqsReceiveGateway {
 
     public static final String GUARDADO_DE_LA_NUEVA_SOLICITUD = "SolicitudUseCase -> createSolicitud : Cumple se continua con el guardado de la nueva solicitud";
     public static final String GUARDO_SOLICITUD_EN_LA_BD = "SolicitudUseCase -> createSolicitud : Se guardo Solicitud en la BD";
@@ -37,6 +42,9 @@ public class SolicitudUseCase implements SolicitudService {
 
     private static final String STATE_DEFAULT = "estado-001";
     private static final String APPROVED_STATE = "estado-004";
+
+    private static final List<String> STATES_BY_UPDATE =
+            List.of("estado-001", "estado-003");
 
     @Override
     public Mono<Solicitud> createSolicitud(Solicitud solicitud) {
@@ -151,4 +159,80 @@ public class SolicitudUseCase implements SolicitudService {
         return solicitudRepository.countAllForReview(status);
     }
 
+    @Override
+    public Mono<Decision> validateUpdateSolicitud(Decision decision) {
+        logger.info("SolicitudUseCase -> validateUpdateSolicitud : inicia validación (solicitudId = "+decision.solicitudId()+")");
+        final String solicitudId = decision.solicitudId();
+        return solicitudRepository.findSolicitud(solicitudId)
+                .switchIfEmpty(Mono.defer(() -> {
+                    logger.info("SolicitudUseCase -> validateUpdateSolicitud : No existe solicitud con ese ID");
+                    return Mono.error(new ConflictException(SolicitudErrorCode.SOLICITUD_NOT_EXIST));
+                }))
+                .doOnNext(s -> logger.info("SolicitudUseCase -> validateUpdateSolicitud : Solicitud encontrada"))
+                .flatMap(solicitudActual ->
+                        solicitudRepository.solicitudHavethisstatus(solicitudActual.getSolicitudId(), STATES_BY_UPDATE)
+                                .doOnNext(permitido -> logger.info(
+                                        "SolicitudUseCase -> validateUpdateSolicitud : Estado actual permitido? "+permitido+" "))
+                                .filter(Boolean::booleanValue)
+                                .switchIfEmpty(Mono.defer(() -> {
+                                    logger.info("SolicitudUseCase -> validateUpdateSolicitud : Solicitud no tiene el estado requerido");
+                                    return Mono.error(new ConflictException(SolicitudErrorCode.SOLICITUD_HAVE_OTHER_STATUS));
+                                }))
+                                .thenReturn(solicitudActual)
+                ).flatMap(solicitudActual ->
+                        stateUseCase.findNameByStateId(decision.stateId())
+                                .map(nombreNuevoEstado -> new Decision(
+                                        solicitudActual.getSolicitudId(),
+                                        decision.stateId(),
+                                        nombreNuevoEstado,
+                                        decision.motivo(),
+                                        solicitudActual.getEmail(),
+                                        "",
+                                        0
+                                ))
+                ).doOnSuccess(d -> logger.info("SolicitudUseCase -> validateUpdateSolicitud : Validación OK"));
+    }
+
+
+    @Override
+    public Mono<Void> updateStateOfSolicitud(ReceivePayload payload) {
+        final String id = payload.solicitudId();
+        final String newState = payload.newState();
+        logger.info("SolicitudUseCase -> updateStateOfSolicitud : inicia validación para ID : " + id);
+        return solicitudRepository.existSolicitudById(id)
+                .switchIfEmpty(
+                        Mono.fromRunnable(() ->
+                                logger.info("SolicitudUseCase -> updateStateOfSolicitud : No existe solicitud con ID : " + id)
+                        ).then(Mono.empty())
+                )
+                .flatMap(solicitud -> {
+                    final String currentState = solicitud.getStateId();
+
+                    if (currentState.equals(newState)) {
+                        return stateUseCase.findNameByStateId(currentState)
+                                .defaultIfEmpty(currentState)
+                                .doOnNext(name ->
+                                        logger.info("SolicitudUseCase -> updateStateOfSolicitud : Estado ya es " + currentState + ". No se actualiza. ID :" + id)
+                                )
+                                .then();
+                    }
+                    return Mono.zip(
+                                    stateUseCase.findNameByStateId(currentState).defaultIfEmpty(currentState),
+                                    stateUseCase.findNameByStateId(newState).defaultIfEmpty(newState)
+                            )
+                            .flatMap(tuple -> {
+                                String oldName = tuple.getT1();
+                                String newName = tuple.getT2();
+
+                                solicitud.setStateId(newState);
+                                return solicitudRepository.save(solicitud)
+                                        .doOnSuccess(saved ->
+                                                logger.info(
+                                                        "SolicitudUseCase -> updateStateOfSolicitud : Actualizada ID " + saved.getSolicitudId() + " como quedo : " + currentState + " -> " + newState + " (" + oldName + " -> " + newName + ")"))
+                                        .then();
+                            });
+                })
+                .doOnError(e -> logger.error("SolicitudUseCase -> updateStateOfSolicitud : error para ID " + id + "  error : " + e))
+                .onErrorResume(e -> Mono.empty());
+    }
 }

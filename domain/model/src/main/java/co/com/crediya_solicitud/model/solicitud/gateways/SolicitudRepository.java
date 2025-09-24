@@ -15,4 +15,11 @@ public interface SolicitudRepository {
     Flux<Solicitud> findAll();
 
     Mono<Long> countAllForReview(List<String> stateIds);
+
+    Mono<Solicitud> findSolicitud(String solicitudId);
+
+    Mono<Boolean> solicitudHavethisstatus(String solicitudId, List<String> status);
+
+    Mono<Solicitud> existSolicitudById(String solicitudId);
+
 }
