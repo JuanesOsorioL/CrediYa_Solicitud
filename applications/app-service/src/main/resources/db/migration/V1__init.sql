@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 create table if not exists estados
 (
     state_id    VARCHAR(100) PRIMARY KEY,
@@ -17,7 +19,7 @@ create table if not exists tipo_prestamo
 
 create table if not exists solicitud
 (
-    solicitud_id VARCHAR(100) PRIMARY KEY,
+    solicitud_id VARCHAR(100) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     amount       NUMERIC(15, 2) NOT NULL,
     term         INTEGER        NOT NULL,
     email        VARCHAR(100)   NOT NULL,
@@ -31,9 +33,9 @@ create table if not exists solicitud
 
 INSERT INTO estados (state_id, name, description)
 VALUES ('estado-001', 'Pendiente de revisión', 'La solicitud está pendiente de ser revisada'),
-       ('estado-002', 'Rechazadas', 'La solicitud está rechazada'),
+       ('estado-002', 'Rechazado', 'La solicitud está rechazada'),
        ('estado-003', 'Revision manual', 'La solicitud está pendiente por revision manual'),
-       ('estado-004', 'Aprobadas', 'La solicitud está aprobada');
+       ('estado-004', 'Aprobado', 'La solicitud está aprobada');
 
 INSERT INTO tipo_prestamo (loan_type_id, name, minimum_amount, maximum_amount, interest_rate, automatic_validation)
 VALUES ('prestamo-001', 'Crédito Personal', 1000.00, 10000.00, 12.50, TRUE),

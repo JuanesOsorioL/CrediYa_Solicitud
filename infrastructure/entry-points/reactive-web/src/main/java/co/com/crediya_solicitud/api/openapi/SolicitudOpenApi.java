@@ -1,6 +1,7 @@
 package co.com.crediya_solicitud.api.openapi;
 
 
+import co.com.crediya_solicitud.api.dto.DecisionDto;
 import co.com.crediya_solicitud.api.dto.SolicitudDto;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import lombok.experimental.UtilityClass;
@@ -79,6 +80,54 @@ public class SolicitudOpenApi {
                         .description("Error interno")
                         .content(contentBuilder().mediaType(MediaType.APPLICATION_JSON_VALUE)
                                 .schema(schemaBuilder().implementation(ErrorResponse.class))))
+                .security(securityRequirementBuilder().name("bearerAuth"));
+    }
+
+
+    public Builder updateSolicitud(Builder builder) {
+        return builder
+                .operationId("updateSolicitud")
+                .description("Actualiza el estado de una solicitud. Envía el cambio a SQS y devuelve el id del mensaje publicado.")
+                .tag("Solicitud")
+                .requestBody(requestBodyBuilder()
+                        .required(true)
+                        .content(contentBuilder()
+                                .mediaType(MediaType.APPLICATION_JSON_VALUE)
+                                .schema(schemaBuilder().implementation(DecisionDto.class))
+                        )
+                )
+                .response(responseBuilder()
+                        .responseCode(String.valueOf(HttpStatus.OK.value()))
+                        .description("Solicitud de actualización enviada exitosamente")
+                        .content(contentBuilder()
+                                .mediaType(MediaType.APPLICATION_JSON_VALUE)
+                                .schema(schemaBuilder().implementation(String.class))
+                        )
+                )
+                .response(responseBuilder()
+                        .responseCode(String.valueOf(HttpStatus.BAD_REQUEST.value()))
+                        .description("Petición inválida")
+                        .content(contentBuilder()
+                                .mediaType(MediaType.APPLICATION_JSON_VALUE)
+                                .schema(schemaBuilder().implementation(ErrorResponse.class))
+                        )
+                )
+                .response(responseBuilder()
+                        .responseCode(String.valueOf(HttpStatus.CONFLICT.value()))
+                        .description("Conflicto en la actualización de estado")
+                        .content(contentBuilder()
+                                .mediaType(MediaType.APPLICATION_JSON_VALUE)
+                                .schema(schemaBuilder().implementation(ErrorResponse.class))
+                        )
+                )
+                .response(responseBuilder()
+                        .responseCode(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()))
+                        .description("Error interno del servidor")
+                        .content(contentBuilder()
+                                .mediaType(MediaType.APPLICATION_JSON_VALUE)
+                                .schema(schemaBuilder().implementation(ErrorResponse.class))
+                        )
+                )
                 .security(securityRequirementBuilder().name("bearerAuth"));
     }
 }

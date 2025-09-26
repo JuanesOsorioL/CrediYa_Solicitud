@@ -10,6 +10,7 @@ import co.com.crediya_solicitud.api.utils.ValidateResponseToken;
 import co.com.crediya_solicitud.model.exception.ExternalServiceException;
 import co.com.crediya_solicitud.model.exception.SolicitudErrorCode;
 import co.com.crediya_solicitud.model.exception.specificexceptions.UnauthorizedException;
+import co.com.crediya_solicitud.model.logger.menssage.LogMessageService;
 import co.com.crediya_solicitud.model.shared_token.AuthContext;
 import co.com.crediya_solicitud.model.solicitud.gateways.UserGateway;
 import co.com.crediya_solicitud.model.sqs.SqsSendGateway;
@@ -39,20 +40,17 @@ import static co.com.crediya_solicitud.model.exception.SolicitudErrorCode.TOKEN_
 @RequiredArgsConstructor
 public class SolicitudHandler {
 
-    public static final String AUTHORIZATION = "Authorization";
+
     private static final String STATE_DEFAULT = "estado-001";
     private static final String BEARER = "Bearer ";
-    public static final String ERRORES_DE_JAKARTA_DEL_REQUEST = "SolicitudHandler -> validarInfra : se verifican los errores de jakarta del request";
-    public static final String ERRORES_INFRAESTRUCTURALES_DETECTADOS = "SolicitudHandler -> validarInfra : Errores infraestructurales detectados";
-    public static final String ES_UN_CUSTOMER_CLIENTE = "SolicitudHandler -> createSolicitud : es un Customer(cliente)";
-    public static final String PETICION_PARA_CREAR_SOLICITUD_DTO_RECIBIDO = "SolicitudHandler -> createSolicitud : Nueva petición para crear solicitud, Dto recibido.";
-    public static final String NO_SE_ENCONTRARON_ERRORES_JAKARTA = "SolicitudHandler -> createSolicitud : No se encontraron Errores jakarta";
-    public static final String TRANSFORMADO_A_DOMINIO_SOLICITUD = "SolicitudHandler -> createSolicitud : transformado a dominio (Solicitud)";
-    public static final String SERVICE_CREATE_SOLICITUD = "SolicitudHandler -> createSolicitud : Invocando a solicitudService.createSolicitud";
-    public static final String DTO_PARA_LA_RESPUESTA = "SolicitudHandler -> createSolicitud : transformado a dto para la respuesta";
-    public static final String CREADO_EXITOSAMENTE = "SolicitudHandler -> createSolicitud : Usuario creado exitosamente";
+    public static final String AUTHORIZATION = "Authorization";
     public static final String STATUS = "status";
-
+    public static final String PAGE = "page";
+    public static final String SIZE = "size";
+    public static final String PAGE_SOLICITADA = "pageSolicitada";
+    public static final String TOTAL_ELEMENTS = "totalElements";
+    public static final String TOTAL_PAGES = "totalPages";
+    public static final String MAX_PAGE_INDEX = "maxPageIndex";
 
     private final ApiResponseBuilder apiResponseBuilder;
     private final SolicitudService solicitudService;
@@ -66,41 +64,40 @@ public class SolicitudHandler {
 
     //primero
     public Mono<ServerResponse> createSolicitud(ServerRequest request) {
-        logger.info("SolicitudHandler -> createSolicitud : inicia el flujo.");
+        LogMessageService.INICIA_EL_FLUJO.info(logger);
         return extraerToken(request)
                 .flatMap(token -> flujoAuthCustomer()
-                        .doOnNext(claimsDto -> logger.info(ES_UN_CUSTOMER_CLIENTE))
+                        .doOnNext(claimsDto -> LogMessageService.ES_UN_CUSTOMER_CLIENTE.info(logger))
                         .flatMap(claimsDto ->
                                 request.bodyToMono(SolicitudDto.class)
-                                        .doOnNext(sub -> logger.info(PETICION_PARA_CREAR_SOLICITUD_DTO_RECIBIDO))
+                                        .doOnNext(sub -> LogMessageService.PETICION_PARA_CREAR_SOLICITUD_DTO_RECIBIDO.info(logger))
                                         .flatMap(this::validarInfra)
-                                        .doOnNext(sub -> logger.info(NO_SE_ENCONTRARON_ERRORES_JAKARTA))
+                                        .doOnNext(sub -> LogMessageService.NO_SE_ENCONTRARON_ERRORES_JAKARTA.info(logger))
                                         .flatMap(solicitudDto ->
                                                 validateResponseToken.isOwner(claimsDto, solicitudDto.documentId())
                                                         .map(c -> solicitudDto)
                                                         .map(s -> new SolicitudDto(s.solicitudId(), s.amount(), s.documentId(), s.term(), claimsDto.sub(), s.stateId(), s.loanTypeId()))
                                         )
-                        ).doOnNext(sub -> logger.info(TRANSFORMADO_A_DOMINIO_SOLICITUD))
+                        ).doOnNext(sub -> LogMessageService.TRANSFORMADO_A_DOMINIO_SOLICITUD.info(logger))
                         .map(solicitudDtoMapper::toSolicitud)
-                        .doOnNext(sub -> logger.info(SERVICE_CREATE_SOLICITUD))
+                        .doOnNext(sub -> LogMessageService.SERVICE_CREATE_SOLICITUD.info(logger))
                         .flatMap(solicitudService::createSolicitud)
-                        .doOnNext(sub -> logger.info(DTO_PARA_LA_RESPUESTA))
+                        .doOnNext(sub -> LogMessageService.DTO_PARA_LA_RESPUESTA.info(logger))
                         .map(solicitudDtoMapper::toDto)
                         .flatMap(responseSolicitudDto -> apiResponseBuilder.build(
                                 HttpStatus.CREATED,
-                                "Solicitud creada exitosamente",
+                                LogMessageService.SOLICITUD_CREADA_EXITOSAMENTE.fmt(),
                                 responseSolicitudDto
                         ))
                         .contextWrite(ctx -> ctx.put(AuthContext.TOKEN_KEY, token))
-
-                ).doOnSuccess(dto -> logger.info(CREADO_EXITOSAMENTE));
+                ).doOnSuccess(dto -> LogMessageService.CREADO_EXITOSAMENTE.info(logger));
     }
 
     //segundo
     public Mono<ServerResponse> findAll(ServerRequest request) {
-        logger.info("SolicitudHandler -> findAll : inicia el flujo.");
-        int page = request.queryParam("page").map(Integer::parseInt).orElse(0);
-        int size = request.queryParam("size").map(Integer::parseInt).orElse(10);
+        LogMessageService.INICIA_EL_FLUJO.info(logger);
+        int page = request.queryParam(PAGE).map(Integer::parseInt).orElse(0);
+        int size = request.queryParam(SIZE).map(Integer::parseInt).orElse(10);
         page = Math.max(0, page);
         size = Math.max(1, size);
 
@@ -114,39 +111,30 @@ public class SolicitudHandler {
         long offset = (long) page * size;
         Pageable pageable = PageRequest.of(page, size);
 
-        logger.info("findAll params -> status= " + statuses + ", page=" + page + ", size=" + size + ", offset=" + offset + " ");
+        LogMessageService.PAGINATION.info(logger, statuses, page, size, offset);
 
         int finalSize = size;
         int finalPage = page;
         return extraerToken(request)
                 .flatMap(token -> flujoAuthAdviser()
-
                         .then(solicitudService.countByStatus(statuses)
-                                .doOnNext(total -> logger.info("countByStatus status=" + statuses + ", total= " + total + " "))
+                                .doOnNext(total -> LogMessageService.CANTIDAD_SOLICITUDES.info(logger, statuses, total))
                                 .flatMap(total -> {
                                     if (total == 0) {
                                         var empty = new PageImpl<List<?>>(List.of(), pageable, 0);
-                                        return apiResponseBuilder.build(HttpStatus.OK, "No hay resultados para el estado solicitado", empty);
+                                        return apiResponseBuilder.build(HttpStatus.OK, LogMessageService.NO_HAY_RESULTADOS_PARA_EL_ESTADO_SOLICITADO.fmt(), empty);
                                     }
                                     int totalPages = (int) Math.ceil((double) total / finalSize);
-                                    if (offset >= total) {//paginacion fuera de rango
-                                        Map<String, Object> payload = Map.of(
-                                                "status", statuses.toString(),
-                                                "pageSolicitada", finalPage,
-                                                "size", finalSize,
-                                                "totalElements", total,
-                                                "totalPages", totalPages,
-                                                "maxPageIndex", Math.max(0, totalPages - 1)
-                                        );
+                                    if (offset >= total) {
+                                        Map<String, Object> payload = getStringObjectMap(total, statuses, finalPage, finalSize, totalPages);
 
                                         return apiResponseBuilder.build(
                                                 HttpStatus.BAD_REQUEST,
-                                                "Parámetros de paginación inválidos: la página solicitada está fuera de rango",
+                                                LogMessageService.PARAMETROS_DE_PAGINACION_INVALIDOS_LA_PAGINA_SOLICITADA_ESTA_FUERA_DE_RANGO.fmt(),
                                                 payload
                                         );
                                     }
 
-                                    // Rango OK, traemos la página y mapeamos a DTO
                                     return solicitudService.getSolicitudByRevision(statuses, finalPage, finalSize)
                                             .map(solicitudDtoMapper::toSolicitudRevision)
                                             .collectList()
@@ -154,7 +142,7 @@ public class SolicitudHandler {
                                                 var pageDto = new PageImpl<>(content, pageable, total);
                                                 return apiResponseBuilder.build(
                                                         HttpStatus.OK,
-                                                        "Solicitudes recuperadas exitosamente",
+                                                        LogMessageService.SOLICITUDES_RECUPERADAS_EXITOSAMENTE.fmt(),
                                                         pageDto
                                                 );
                                             });
@@ -162,6 +150,17 @@ public class SolicitudHandler {
 
                         ).contextWrite(ctx -> ctx.put(AuthContext.TOKEN_KEY, token))
                 );
+    }
+
+    private static Map<String, Object> getStringObjectMap(Long total, List<String> statuses, int finalPage, int finalSize, int totalPages) {
+        return Map.of(
+                STATUS, statuses.toString(),
+                PAGE_SOLICITADA, finalPage,
+                SIZE, finalSize,
+                TOTAL_ELEMENTS, total,
+                TOTAL_PAGES, totalPages,
+                MAX_PAGE_INDEX, Math.max(0, totalPages - 1)
+        );
     }
 
     private SolicitudErrorCode mapMessageToErrorCode(String code) {
@@ -196,7 +195,7 @@ public class SolicitudHandler {
     }
 
     private <T> Mono<T> validarInfra(T dto) {
-        logger.info(ERRORES_DE_JAKARTA_DEL_REQUEST);
+        LogMessageService.ERRORES_DE_JAKARTA_DEL_REQUEST.info(logger);
         return Mono.defer(() -> {
             var infraErrors = validator.validate(dto).stream()
                     .map(v -> mapMessageToErrorCode(v.getMessage()))
@@ -205,7 +204,7 @@ public class SolicitudHandler {
                     .toList();
 
             if (!infraErrors.isEmpty()) {
-                logger.error(ERRORES_INFRAESTRUCTURALES_DETECTADOS);
+                LogMessageService.ERRORES_INFRAESTRUCTURALES_DETECTADOS.info(logger);
                 return Mono.error(new SolicitudValidationException(infraErrors, List.of(), null));
             }
             return Mono.just(dto);
@@ -213,28 +212,29 @@ public class SolicitudHandler {
     }
 
     public Mono<ServerResponse> updateSolicitud(ServerRequest request) {
-        logger.info("SolicitudHandler -> updateSolicitud : inicia el flujo.");
+        LogMessageService.INICIA_EL_FLUJO_UPDATE.info(logger);
         return extraerToken(request)
                 .flatMap(token ->
                         flujoAuthAdviser()
-                                .doOnNext(x -> logger.info("SolicitudHandler -> updateSolicitud : es un Asesor"))
+                                .doOnNext(x -> LogMessageService.SOLICITUD_ES_UN_ASESOR.info(logger))
                                 .then(request.bodyToMono(DecisionDto.class))
                                 .contextWrite(ctx -> ctx.put(AuthContext.TOKEN_KEY, token))
                 )
-                .doOnNext(dto -> logger.info("SolicitudHandler -> updateSolicitud : DTO recibido: " + dto))
+                .doOnNext(dto -> LogMessageService.DTO_RECIBIDO.info(logger,dto.toString()))
                 .flatMap(this::validarInfra)
-                .doOnNext(dto -> logger.info("SolicitudHandler -> updateSolicitud : validaciones OK"))
+                .doOnNext(dto -> LogMessageService.VALIDATE_OK_UPDATE.info(logger))
                 .map(solicitudDtoMapper::toDecision)
                 .flatMap(solicitudService::validateUpdateSolicitud)
                 .flatMap(sqsSendGateway::notificarCambio)
                 .flatMap(payloadEnviado ->
                         apiResponseBuilder.build(
                                 HttpStatus.OK,
-                                "Solicitud de actualización enviada exitosamente",
+                                LogMessageService.SOLICITUD_DE_ACTUALIZACION_ENVIADA_EXITOSAMENTE.fmt(),
                                 payloadEnviado
                         )
                 )
-                .doOnSuccess(x -> logger.info("SolicitudHandler -> updateSolicitud : Solicitud de actualización enviada exitosamente"));
+                .doOnSuccess(x ->
+                        LogMessageService.SOLICITUD_ENVIADA_CORRECTAMENTE.info(logger));
 
     }
 

@@ -4,6 +4,7 @@ import co.com.crediya_solicitud.model.exception.SolicitudErrorCode;
 import co.com.crediya_solicitud.model.exception.specificexceptions.ConflictException;
 import co.com.crediya_solicitud.model.loantypes.LoanTypes;
 import co.com.crediya_solicitud.model.logger.Logger;
+import co.com.crediya_solicitud.model.logger.menssage.LogMessageService;
 import co.com.crediya_solicitud.model.solicitud.Solicitud;
 import co.com.crediya_solicitud.model.solicitud.gateways.SolicitudRepository;
 import co.com.crediya_solicitud.model.solicitud.gateways.UserGateway;
@@ -22,16 +23,9 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class SolicitudUseCase implements SolicitudService, SqsReceiveGateway {
-
-    public static final String GUARDADO_DE_LA_NUEVA_SOLICITUD = "SolicitudUseCase -> createSolicitud : Cumple se continua con el guardado de la nueva solicitud";
-    public static final String GUARDO_SOLICITUD_EN_LA_BD = "SolicitudUseCase -> createSolicitud : Se guardo Solicitud en la BD";
-    public static final String BUSCANDO_SOLICITUDES_PARA_REVISION_CON_ESTADO = "SolicitudUseCase -> getSolicitudByRevision : Buscando solicitudes para revisión. con estado = ";
-    public static final String CANTIDAD_DE_EMAIL = "SolicitudUseCase -> getSolicitudByRevision : cantidad de email = ";
-    public static final String CANTIDAD_DE_USUARIOS_ENCONTRADOS_POR_EMAIL = "SolicitudUseCase -> getSolicitudByRevision :  cantidad de usuarios encontrados por email = ";
 
     private final SolicitudRepository solicitudRepository;
     private final LoanTypesUseCase loanTypesUseCase;
@@ -39,24 +33,23 @@ public class SolicitudUseCase implements SolicitudService, SqsReceiveGateway {
     private final Logger logger;
     private final UserGateway userGateway;
 
-    private static final String STATE_DEFAULT = "estado-001";
+    private static final String PENDING_REVIEW_STATE_DEFAULT = "estado-001";
     private static final String APPROVED_STATE = "estado-004";
 
     private static final List<String> STATES_BY_UPDATE =
-            List.of("estado-001", "estado-003");
+            List.of(PENDING_REVIEW_STATE_DEFAULT, "estado-003");
 
     @Override
     public Mono<Solicitud> createSolicitud(Solicitud solicitud) {
-        logger.info("SolicitudUseCase -> createSolicitud : Se inicia el llamando a el caso de uso de tipo préstamo para validar los topes del tipo de solicitud : " + solicitud.getLoanTypeId());
+        LogMessageService.LOS_TOPES_DEL_TIPO_DE_SOLICITUD.info(logger, solicitud.getLoanTypeId());
         return loanTypesUseCase.findByLoanTypeAndValidateAmount(solicitud.getLoanTypeId(), solicitud.getAmount())
-                .doOnSubscribe(sub -> logger.info(GUARDADO_DE_LA_NUEVA_SOLICITUD))
+                .doOnSubscribe(sub -> LogMessageService.GUARDADO_DE_LA_NUEVA_SOLICITUD.info(logger))
                 .flatMap(exists -> {
                     Solicitud withId = solicitud.toBuilder()
-                            .solicitudId(UUID.randomUUID().toString())
-                            .stateId(STATE_DEFAULT)
+                            .stateId(PENDING_REVIEW_STATE_DEFAULT)
                             .build();
                     return solicitudRepository.save(withId)
-                            .doOnSubscribe(subscription -> logger.info(GUARDO_SOLICITUD_EN_LA_BD))
+                            .doOnSubscribe(subscription -> LogMessageService.GUARDO_SOLICITUD_EN_LA_BD.info(logger))
                             .map(saved -> saved.toBuilder()
                                     .documentId(solicitud.getDocumentId())
                                     .build()
@@ -67,89 +60,88 @@ public class SolicitudUseCase implements SolicitudService, SqsReceiveGateway {
 
     @Override
     public Flux<SolicitudRevision> getSolicitudByRevision(List<String> status, int page, int size) {
-        logger.info("SolicitudUseCase -> getSolicitudByRevision : Se inicia el llamando a calcular y mostrar las solicitudes");
+
+        LogMessageService.INICIA_EL_LLAMANDO_A_CALCULAR_Y_MOSTRAR_LAS_SOLICITUDES.info(logger);
 
         int p = Math.max(0, page);
         int sz = Math.max(1, size);
         long offset = (long) p * sz;
 
-        Mono<Long> countSolicitud = solicitudRepository.countAllForReview(status)
-                .doOnNext(total -> logger.info("SolicitudUseCase -> getSolicitudByRevision : total = " + total + ", status = " + status + ", page = " + p + ", size = " + sz));
 
-        // Valida rango ANTES de armar la página
-        Flux<Solicitud> totalSolicitud = countSolicitud.flatMapMany(total -> {
-            if (total == 0 || offset >= total) {
-                logger.info("SolicitudUseCase -> getSolicitudByRevision : Página vacía: total=" + total + ", offset=" + offset + ",");
-                return Flux.empty();
-            }
-            // buscar las solicitudes de ese o esos estados
-            return solicitudRepository.findAllForReview(status)
-                    .doOnSubscribe(s -> logger.info(BUSCANDO_SOLICITUDES_PARA_REVISION_CON_ESTADO + status))
-                    .skip(offset)
-                    .take(sz);
-        }).cache();
+        return solicitudRepository.countAllForReview(status)
+                .flatMapMany(total -> {
+                    if (total == 0 || offset >= total) {
+                        LogMessageService.PAGINA_LIMPIA.info(logger, total, offset);
+                        return Flux.empty();
+                    }
 
-        //recolecta solo los email que se mostraran
-        Mono<List<String>> onlyEmailNecesary = totalSolicitud
-                .map(Solicitud::getEmail)
-                .distinct()
-                .collectList()
-                .doOnNext(set -> logger.info(CANTIDAD_DE_EMAIL + set.size()));
+                    Flux<Solicitud> pageFlux = solicitudRepository.findAllForReview(status)
+                            .doOnSubscribe(s -> LogMessageService.BUSCANDO_SOLICITUDES_PARA_REVISION_CON_ESTADO.info(logger, status))
+                            .skip(offset)
+                            .take(sz)
+                            .cache();
 
-        Mono<Map<String, LoanTypes>> loanMapMono =
-                loanTypesUseCase.findAll()
-                        .collectMap(LoanTypes::getLoanTypeId, lt -> lt);
+                    Mono<List<String>> emailsMono = pageFlux.map(Solicitud::getEmail)
+                            .distinct()
+                            .collectList()
+                            .doOnNext(list -> LogMessageService.CANTIDAD_DE_EMAIL.info(logger, list.size()));
 
-        Mono<Map<String, State>> stateMapMono =
-                stateUseCase.findAll()
-                        .collectMap(State::getStateId, st -> st);
 
-        Mono<Map<String, User>> usersByEmail =
-                onlyEmailNecesary.flatMap(userGateway::getUsersByEmails)
-                        .doOnNext(map -> logger.info(CANTIDAD_DE_USUARIOS_ENCONTRADOS_POR_EMAIL + map.size()));
+                    Mono<Map<String, LoanTypes>> loanMapMono =
+                            loanTypesUseCase.findAll()
+                                    .collectMap(LoanTypes::getLoanTypeId, lt -> lt);
 
-        // Deuda total por email (solo aprobadas), paso a paso
-        Mono<Map<String, BigDecimal>> deudaByEmailMono =
-                onlyEmailNecesary.flatMap(emails ->
-                        solicitudRepository.findAllForReview(List.of(APPROVED_STATE)) // Traer todas las solicitudes aprobadas
-                                .filter(s -> emails.contains(s.getEmail())) // Quedan solo con las que coinciden con el email
-                                .collectList()   // se en lista
-                                .map(solicitudes -> {  // Recorrer y sumar montos por email en un Map
-                                    Map<String, BigDecimal> porEmail = new HashMap<>();
-                                    for (Solicitud s : solicitudes) {
-                                        String email = s.getEmail();
-                                        BigDecimal monto = s.getAmount();
-                                        porEmail.merge(email, monto, BigDecimal::add);
-                                    }
-                                    return porEmail;
-                                })
-                );
+                    Mono<Map<String, State>> stateMapMono =
+                            stateUseCase.findAll()
+                                    .collectMap(State::getStateId, st -> st);
 
-        return Mono.zip(loanMapMono, stateMapMono, usersByEmail, deudaByEmailMono)
-                .flatMapMany(t -> {
-                    var loanMap = t.getT1();
-                    var stateMap = t.getT2();
-                    var userByEmail = t.getT3();
-                    var deudaByMail = t.getT4();
+                    Mono<Map<String, User>> usersByEmail =
+                            emailsMono.flatMap(userGateway::getUsersByEmails)
+                                    .doOnNext(map -> LogMessageService.CANTIDAD_DE_USUARIOS_ENCONTRADOS_POR_EMAIL.info(logger, map.size()));
 
-                    return totalSolicitud.map(s -> {
-                        var email = s.getEmail();
-                        var user = userByEmail.get(email);
-                        var lt = loanMap.get(s.getLoanTypeId());
-                        var st = stateMap.get(s.getStateId());
+                    // Deuda total por email (solo aprobadas)
+                    Mono<Map<String, BigDecimal>> deudaByEmailMono =
+                            emailsMono.flatMap(emails ->
+                                    solicitudRepository.findAllForReview(List.of(APPROVED_STATE))
+                                            .filter(s -> emails.contains(s.getEmail()))
+                                            .collectList()
+                                            .map(solicitudes -> {
+                                                Map<String, BigDecimal> porEmail = new HashMap<>();
+                                                for (Solicitud s : solicitudes) {
+                                                    String email = s.getEmail();
+                                                    BigDecimal monto = s.getAmount();
+                                                    porEmail.merge(email, monto, BigDecimal::add);
+                                                }
+                                                return porEmail;
+                                            })
+                            );
 
-                        return new SolicitudRevision(
-                                s.getAmount(),
-                                s.getTerm(),
-                                s.getEmail(),
-                                (user.firstName() + " " + user.lastName()).trim(),
-                                lt.getName(),
-                                lt.getInterestRate(),
-                                st.getName(),
-                                user.baseSalary(),
-                                deudaByMail.getOrDefault(email, BigDecimal.ZERO)
-                        );
-                    });
+                    return Mono.zip(loanMapMono, stateMapMono, usersByEmail, deudaByEmailMono)
+                            .flatMapMany(t -> {
+                                var loanMap = t.getT1();
+                                var stateMap = t.getT2();
+                                var userByEmail = t.getT3();
+                                var deudaByMail = t.getT4();
+
+                                return pageFlux.map(s -> {
+                                    var email = s.getEmail();
+                                    var user = userByEmail.get(email);
+                                    var lt = loanMap.get(s.getLoanTypeId());
+                                    var st = stateMap.get(s.getStateId());
+
+                                    return new SolicitudRevision(
+                                            s.getAmount(),
+                                            s.getTerm(),
+                                            s.getEmail(),
+                                            (user.firstName() + " " + user.lastName()).trim(),
+                                            lt.getName(),
+                                            lt.getInterestRate(),
+                                            st.getName(),
+                                            user.baseSalary(),
+                                            deudaByMail.getOrDefault(email, BigDecimal.ZERO)
+                                    );
+                                });
+                            });
                 });
     }
 
@@ -160,21 +152,20 @@ public class SolicitudUseCase implements SolicitudService, SqsReceiveGateway {
 
     @Override
     public Mono<Decision> validateUpdateSolicitud(Decision decision) {
-        logger.info("SolicitudUseCase -> validateUpdateSolicitud : inicia validación (solicitudId = " + decision.solicitudId() + ")");
+        LogMessageService.INICIA_VALIDATION_SOLICITUD_ID.info(logger, decision.solicitudId());
         final String solicitudId = decision.solicitudId();
         return solicitudRepository.findSolicitud(solicitudId)
                 .switchIfEmpty(Mono.defer(() -> {
-                    logger.info("SolicitudUseCase -> validateUpdateSolicitud : No existe solicitud con ese ID");
+                    LogMessageService.NO_EXISTE_SOLICITUD_CON_ESE_ID.info(logger);
                     return Mono.error(new ConflictException(SolicitudErrorCode.SOLICITUD_NOT_EXIST));
                 }))
-                .doOnNext(s -> logger.info("SolicitudUseCase -> validateUpdateSolicitud : Solicitud encontrada"))
+                .doOnNext(s -> LogMessageService.SOLICITUD_ENCONTRADA.info(logger))
                 .flatMap(solicitudActual ->
-                        solicitudRepository.solicitudHavethisstatus(solicitudActual.getSolicitudId(), STATES_BY_UPDATE)
-                                .doOnNext(permitido -> logger.info(
-                                        "SolicitudUseCase -> validateUpdateSolicitud : Estado actual permitido? " + permitido + " "))
+                        solicitudRepository.solicitudHavethisstatus(solicitudActual.getSolicitudId(), STATES_BY_UPDATE)//"Pendiente de revisión" "Revision manual"
+                                .doOnNext(permitido -> LogMessageService.ESTADO_ACTUAL_PERMITIDO.info(logger, permitido))
                                 .filter(Boolean::booleanValue)
                                 .switchIfEmpty(Mono.defer(() -> {
-                                    logger.info("SolicitudUseCase -> validateUpdateSolicitud : Solicitud no tiene el estado requerido");
+                                    LogMessageService.NO_TIENE_EL_ESTADO_REQUERIDO.info(logger);
                                     return Mono.error(new ConflictException(SolicitudErrorCode.SOLICITUD_HAVE_OTHER_STATUS));
                                 }))
                                 .thenReturn(solicitudActual)
@@ -189,7 +180,7 @@ public class SolicitudUseCase implements SolicitudService, SqsReceiveGateway {
                                         "",
                                         0
                                 ))
-                ).doOnSuccess(d -> logger.info("SolicitudUseCase -> validateUpdateSolicitud : Validación OK"));
+                ).doOnSuccess(d -> LogMessageService.VALIDATION_OK.info(logger));
     }
 
 
@@ -199,22 +190,21 @@ public class SolicitudUseCase implements SolicitudService, SqsReceiveGateway {
         final String newCodState = decision.stateId();
         final String newNameState = decision.nameStateId();
 
-        logger.info("SolicitudUseCase -> updateStateOfSolicitud : inicia validación para ID = " + id);
+        LogMessageService.SOLICITUD_INICIA_VALIDATION_PARA_ID.info(logger, id);
 
         return solicitudRepository.findSolicitud(id)
                 .switchIfEmpty(Mono.defer(() -> {
-                    logger.info("SolicitudUseCase -> updateStateOfSolicitud : No existe solicitud con ID = " + id);
+                    LogMessageService.NO_EXISTE_SOLICITUD_CON_ID.info(logger, id);
                     return Mono.empty();
-                })).doOnNext(sol -> logger.info("SolicitudUseCase -> updateStateOfSolicitud : se encontro solicitud" + sol))
+                })).doOnNext(sol -> LogMessageService.SE_HALLO_SOLICITUD.info(logger, sol))
                 .flatMap(solicitud -> {
                     final String currentCodState = solicitud.getStateId();
-                    logger.info("SolicitudUseCase -> updateStateOfSolicitud : se valida si la solicitud ya tiene el estado actualizado");
-                    if (currentCodState.equals(newCodState)) {
+                    LogMessageService.LA_SOLICITUD_YA_TIENE_EL_ESTADO_ACTUALIZADO.info(logger);
+
+                    if (currentCodState.equals(newCodState)) {//comparo estados
                         return stateUseCase.findNameByStateId(currentCodState)
                                 .defaultIfEmpty(currentCodState)
-                                .doOnNext(currentName ->
-                                        logger.info("SolicitudUseCase -> updateStateOfSolicitud : Estado ya es " + currentName + " (" + currentCodState + "). No se actualiza. ID = " + id)
-                                )
+                                .doOnNext(currentName -> LogMessageService.ESTADO_YA_ESTA.info(logger, currentName, currentCodState, id))
                                 .then();
                     }
 
@@ -227,15 +217,16 @@ public class SolicitudUseCase implements SolicitudService, SqsReceiveGateway {
                             .flatMap(tuple -> {
                                 String oldName = tuple.getT1();
                                 String resolvedNewName = tuple.getT2();
-                                logger.info("SolicitudUseCase -> updateStateOfSolicitud : se actualiza del estado ");
+                                LogMessageService.SE_ACTUALIZA_DEL_ESTADO.info(logger);
+
                                 solicitud.setStateId(newCodState);
                                 return solicitudRepository.save(solicitud)
-                                        .doOnSuccess(saved -> logger.info(
-                                                "SolicitudUseCase -> updateStateOfSolicitud : Actualizada ID = " + saved.getSolicitudId() + " " + currentCodState + " -> " + newCodState + " ( " + oldName + " -> " + resolvedNewName + " ) "))
+                                        .doOnSuccess(saved ->
+                                                LogMessageService.ACTUALIZADA_ID.info(logger, saved.getSolicitudId(), currentCodState, newCodState, oldName, resolvedNewName))
                                         .then();
                             });
                 }).then()
-                .doOnError(e -> logger.error("SolicitudUseCase -> updateStateOfSolicitud : error para ID = " + id + "  -> " + e.toString() + " "))
+                .doOnError(e -> LogMessageService.ERROR_PARA_ID.info(logger, id, e.toString()))
                 .onErrorResume(e -> Mono.empty());
     }
 }

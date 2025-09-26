@@ -12,8 +12,6 @@ public interface UserGateway {
 
     Mono<Claismo> validateTokenAndGetClaims();
 
-//    Mono<String> getUserEmailByDocument(String documentId);
-
     Mono<Map<String, User>> getUsersByEmails(List<String> emails);
 
 }

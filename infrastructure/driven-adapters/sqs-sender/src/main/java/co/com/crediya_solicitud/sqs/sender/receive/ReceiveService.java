@@ -22,7 +22,6 @@ public class ReceiveService {
     private final SqsAsyncClient client;
     private final Logger logger;
 
-
     public Flux<Message> poll() {
         return Mono.defer(this::receiveOnce)
                 .repeat()

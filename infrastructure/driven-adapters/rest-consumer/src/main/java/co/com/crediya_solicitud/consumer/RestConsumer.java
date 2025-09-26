@@ -1,11 +1,9 @@
 package co.com.crediya_solicitud.consumer;
 
 import co.com.crediya_solicitud.consumer.dto.EmailsRequestDto;
-import co.com.crediya_solicitud.consumer.dto.RequestDocumentId;
 import co.com.crediya_solicitud.consumer.dto.response.ExternalClaimsResponse;
 import co.com.crediya_solicitud.consumer.dto.response.ExternalErrorResponse;
 import co.com.crediya_solicitud.consumer.dto.response.ExternalUserListResponse;
-import co.com.crediya_solicitud.consumer.dto.response.ExternalUserResponse;
 import co.com.crediya_solicitud.consumer.mapper.RestConsumerDtoMapper;
 import co.com.crediya_solicitud.model.claims.Claismo;
 import co.com.crediya_solicitud.model.exception.ExternalServiceException;
@@ -29,7 +27,6 @@ public class RestConsumer implements UserGateway {
     private final Logger logger;
     private final RestConsumerDtoMapper restConsumerDtoMapper;
 
-    private static final String DOCUMENT = "/api/v1/document";
     private static final String VALIDATE_TOKEN = "/api/v1/validateToken";
     private static final String USERS_BY_EMAILS = "/api/v1/map";
 
@@ -59,33 +56,6 @@ public class RestConsumer implements UserGateway {
                 .map(restConsumerDtoMapper::toClaismo)
                 .doOnNext(claimsDto -> logger.info("RestConsumer -> validateTokenAndGetClaims :Respuesta exitosa se mapea a un ClaismoDto"));
     }
-//
-//    @Override
-//    public Mono<String> getUserEmailByDocument(String documentId) {
-//        logger.info("RestConsumer -> getUserEmailByDocument : Se realiza el llamado al Micro de Auth");
-//        return client
-//                .post()
-//                .uri(DOCUMENT)
-//                .bodyValue(new RequestDocumentId(documentId))
-//                .retrieve()
-//                .onStatus(
-//                        status -> status.is4xxClientError() || status.is5xxServerError(),
-//                        response -> response.bodyToMono(ExternalErrorResponse.class)
-//                                .doOnNext(externalErrorResponse -> logger.info("RestConsumer -> getUserEmailByDocument : Se presento un error en el Micro"))
-//                                .flatMap(error -> Mono.error(
-//                                        new ExternalServiceException(
-//                                                error.getStatus(),
-//                                                error.getCode(),
-//                                                error.getMessage(),
-//                                                error.getBody()
-//                                        )
-//                                ))
-//                )
-//                .bodyToMono(ExternalUserResponse.class)
-//                .map(response -> response.getBody().email())
-//                .doOnNext(email -> logger.info("RestConsumer -> getUserEmailByDocument : Se retorna a UseCase el email" + email + " "));
-//    }
-
 
     @Override
     public Mono<Map<String, User>> getUsersByEmails(List<String> emails) {
