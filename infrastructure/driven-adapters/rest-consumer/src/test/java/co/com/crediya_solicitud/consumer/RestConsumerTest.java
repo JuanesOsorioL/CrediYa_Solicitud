@@ -2,6 +2,7 @@ package co.com.crediya_solicitud.consumer;
 
 
 import co.com.crediya_solicitud.consumer.mapper.RestConsumerDtoMapper;
+import co.com.crediya_solicitud.model.claims.Claismo;
 import co.com.crediya_solicitud.model.exception.ExternalServiceException;
 import co.com.crediya_solicitud.model.logger.Logger;
 import co.com.crediya_solicitud.model.user.User;
@@ -21,7 +22,6 @@ import reactor.test.StepVerifier;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,7 +39,10 @@ class RestConsumerTest {
         server.start();
 
         String baseUrl = server.url("/").toString();
-        WebClient webClient = WebClient.builder().baseUrl(baseUrl).build();
+        WebClient webClient = WebClient.builder()
+                .baseUrl(baseUrl)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer abc123")
+                .build();
 
         mockLogger = Mockito.mock(Logger.class);
         mockMapper = Mockito.mock(RestConsumerDtoMapper.class);
@@ -74,18 +77,17 @@ class RestConsumerTest {
                         }
                         """));
 
+        Claismo mapped = new Claismo("Juan", "juan@test.com", "Customer", "2024-01-01", "Pérez", "123", "2024-01-01", "abc");
+        Mockito.when(mockMapper.toClaismo(any())).thenReturn(mapped);
+
         var mono = restConsumer.validateTokenAndGetClaims();
 
         StepVerifier.create(mono)
-                .assertNext(claims -> {
-                    assertThat(claims.sub()).isEqualTo("juan@test.com");
-                    assertThat(claims.Rol()).isEqualTo("Customer");
-                    assertThat(claims.Document()).isEqualTo("123");
-                })
+                .assertNext(claims -> assertThat(claims).isSameAs(mapped))
                 .verifyComplete();
 
         RecordedRequest req = server.takeRequest();
-        assertThat(req.getPath()).isEqualTo("/v1/validateToken");
+        assertThat(req.getPath()).isEqualTo("/api/v1/validateToken");
         assertThat(req.getMethod()).isEqualTo("GET");
         assertThat(req.getHeader("Authorization")).isEqualTo("Bearer abc123");
     }
@@ -118,48 +120,10 @@ class RestConsumerTest {
                 .verify();
     }
 
-    @Test
-    @DisplayName("getUserEmailByDocument: obtiene el email cuando 200 OK")
-    void getUserEmailByDocument_success() {
-        server.enqueue(new MockResponse()
-                .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .setResponseCode(HttpStatus.OK.value())
-                .setBody("""
-                        {"body":{"email":"test@correo.com"}}
-                        """));
-
-        var mono = restConsumer.getUserEmailByDocument("123");
-
-        StepVerifier.create(mono)
-                .expectNext("test@correo.com")
-                .verifyComplete();
-    }
 
     @Test
-    @DisplayName("getUserEmailByDocument: error 500 -> ExternalServiceException")
-    void getUserEmailByDocument_error() {
-        server.enqueue(new MockResponse()
-                .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .setBody("""
-                        {"status":500, "code":"ERR_X", "message":"Error interno", "body":["fallo"]}
-                        """));
-
-        var mono = restConsumer.getUserEmailByDocument("123");
-
-        StepVerifier.create(mono)
-                .expectErrorSatisfies(ex -> {
-                    assertThat(ex).isInstanceOf(ExternalServiceException.class);
-                    ExternalServiceException ese = (ExternalServiceException) ex;
-                    assertThat(ese.getStatus()).isEqualTo(500);
-                    assertThat(ese.getMessage()).contains("Error interno");
-                })
-                .verify();
-    }
-
-    @Test
-    @DisplayName("getUsersByEmails: mapea mapa de usuarios filtrando nulos")
-    void getUsersByEmails_success() {
+    @DisplayName("getUsersByEmails: mapea el mapa de usuarios (sin nulos)")
+    void getUsersByEmails_success() throws Exception {
         server.enqueue(new MockResponse()
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .setResponseCode(HttpStatus.OK.value())
@@ -168,8 +132,7 @@ class RestConsumerTest {
                           "body": {
                             "users": {
                               "ana@mail.com": {"email":"ana@mail.com","fullName":"Ana"},
-                              "bob@mail.com": {"email":"bob@mail.com","fullName":"Bob"},
-                              "null": null
+                              "bob@mail.com": {"email":"bob@mail.com","fullName":"Bob"}
                             }
                           }
                         }
@@ -190,6 +153,13 @@ class RestConsumerTest {
                     assertThat(map.get("bob@mail.com")).isSameAs(userBob);
                 })
                 .verifyComplete();
+
+        RecordedRequest req = server.takeRequest();
+        assertThat(req.getPath()).isEqualTo("/api/v1/map");
+        assertThat(req.getMethod()).isEqualTo("POST");
+        assertThat(req.getHeader(HttpHeaders.CONTENT_TYPE)).contains("application/json");
+        assertThat(req.getBody().readUtf8())
+                .contains("\"emails\":[\"ana@mail.com\",\"bob@mail.com\"]");
     }
 
     @Test

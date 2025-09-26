@@ -12,6 +12,12 @@ import java.util.Collection;
 public interface SolicitudReactiveRepository extends ReactiveCrudRepository<SolicitudEntity, String>, ReactiveQueryByExampleExecutor<SolicitudEntity> {
 
     Flux<SolicitudEntity> findByStateIdIn(Collection<String> stateIds);
+
     Mono<Long> countByStateIdIn(Collection<String> stateIds);
+
+    Mono<Boolean> existsBySolicitudIdAndStateIdIn(String solicitudId, Collection<String> stateIds);
+
+    Mono<SolicitudEntity> findSolicitudEntitiesBySolicitudId(String solicitudId);
+
 }
 

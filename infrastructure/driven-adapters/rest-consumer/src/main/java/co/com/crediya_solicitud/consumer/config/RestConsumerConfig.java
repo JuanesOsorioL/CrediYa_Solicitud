@@ -31,7 +31,8 @@ public class RestConsumerConfig {
                 return next.exchange(request);
             }
             ClientRequest newReq = ClientRequest.from(request)
-                    .header("Authorization", "Bearer " + token)
+                   // .header("Authorization", "Bearer " + token)
+                    .headers(h -> h.set("Authorization", "Bearer " + token))
                     .build();
             return next.exchange(newReq);
         });

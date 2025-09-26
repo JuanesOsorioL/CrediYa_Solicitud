@@ -16,6 +16,7 @@ public class SolicitudRouterRest {
         return route()
                 .POST(solicitudPath.getBase(), handler::createSolicitud, SolicitudOpenApi::createSolicitud)
                 .GET(solicitudPath.getBase(), handler::findAll, SolicitudOpenApi::findAll)
+                .PUT(solicitudPath.getBase(), handler::updateSolicitud, SolicitudOpenApi::updateSolicitud)
                 .build();
 
     }

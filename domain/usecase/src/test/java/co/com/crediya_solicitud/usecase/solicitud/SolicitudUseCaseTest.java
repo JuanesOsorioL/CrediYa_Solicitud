@@ -1,13 +1,14 @@
 package co.com.crediya_solicitud.usecase.solicitud;
 
-import co.com.crediya_solicitud.model.exception.ExternalServiceException;
 import co.com.crediya_solicitud.model.exception.SolicitudErrorCode;
+import co.com.crediya_solicitud.model.exception.specificexceptions.ConflictException;
 import co.com.crediya_solicitud.model.loantypes.LoanTypes;
 import co.com.crediya_solicitud.model.logger.Logger;
 import co.com.crediya_solicitud.model.solicitud.Solicitud;
 import co.com.crediya_solicitud.model.solicitud.gateways.SolicitudRepository;
 import co.com.crediya_solicitud.model.solicitud.gateways.UserGateway;
 import co.com.crediya_solicitud.model.solicitud_revision.SolicitudRevision;
+import co.com.crediya_solicitud.model.sqs.Decision;
 import co.com.crediya_solicitud.model.state.State;
 import co.com.crediya_solicitud.model.user.User;
 import co.com.crediya_solicitud.usecase.exception.SolicitudValidationException;
@@ -22,9 +23,9 @@ import reactor.test.StepVerifier;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class SolicitudUseCaseTest {
@@ -47,7 +48,7 @@ class SolicitudUseCaseTest {
     }
 
     @Test
-    void createSolicitud_success_flow_persists_and_returns_saved_with_original_document() {
+    void createSolicitud_success_sets_default_state_and_persists() {
         Solicitud input = Solicitud.builder()
                 .solicitudId(null)
                 .documentId("DOC-1")
@@ -58,61 +59,30 @@ class SolicitudUseCaseTest {
                 .stateId(null)
                 .build();
 
-        when(userGateway.getUserEmailByDocument("DOC-1")).thenReturn(Mono.just("user@mail.com"));
-
         when(loanTypesUseCase.findByLoanTypeAndValidateAmount("LT-1", BigDecimal.valueOf(20000)))
-                .thenReturn(Mono.just(mock(LoanTypes.class))).thenReturn(Mono.just(mock(LoanTypes.class)));
+                .thenReturn(Mono.just(new LoanTypes()));
 
         when(solicitudRepository.save(any(Solicitud.class))).thenAnswer(inv -> {
             Solicitud arg = inv.getArgument(0);
-            return Mono.just(arg);
+
+            return Mono.just(arg.toBuilder().solicitudId("GEN-1").build());
         });
 
         Mono<Solicitud> result = useCase.createSolicitud(input);
 
         StepVerifier.create(result)
                 .assertNext(saved -> {
-                    assertThat(saved.getSolicitudId()).isNotBlank();
+                    assertThat(saved.getSolicitudId()).isEqualTo("GEN-1");
                     assertThat(saved.getStateId()).isEqualTo("estado-001");
                     assertThat(saved.getDocumentId()).isEqualTo("DOC-1");
-                    assertThat(saved.getEmail()).isEqualTo("user@mail.com");
+                    assertThat(saved.getEmail()).isNull();
                 })
                 .verifyComplete();
 
-        verify(userGateway).getUserEmailByDocument("DOC-1");
         verify(loanTypesUseCase).findByLoanTypeAndValidateAmount("LT-1", BigDecimal.valueOf(20000));
         verify(solicitudRepository).save(any(Solicitud.class));
+        verifyNoInteractions(userGateway);
     }
-
-    @Test
-    void createSolicitud_maps_external_service_exception_to_validation_AUTH() {
-        Solicitud input = Solicitud.builder()
-                .documentId("DOC-2")
-                .amount(BigDecimal.valueOf(15000))
-                .loanTypeId("LT-2")
-                .build();
-
-        ExternalServiceException upstream =
-                new ExternalServiceException(500, "external-failure", "Auth error", List.of("auth-missing"));
-
-        when(userGateway.getUserEmailByDocument("DOC-2")).thenReturn(Mono.error(upstream));
-
-        Mono<Solicitud> result = useCase.createSolicitud(input);
-
-        StepVerifier.create(result)
-                .expectErrorSatisfies(err -> {
-                    assertThat(err).isInstanceOf(SolicitudValidationException.class);
-                    var sve = (SolicitudValidationException) err;
-                    assertThat(sve.getDomainErrors()).contains(SolicitudErrorCode.AUTH);
-                    assertThat(sve.getMicroAuth()).contains("auth-missing");
-                })
-                .verify();
-
-        verify(userGateway).getUserEmailByDocument("DOC-2");
-        verifyNoInteractions(loanTypesUseCase);
-        verifyNoInteractions(solicitudRepository);
-    }
-
 
     @Test
     void createSolicitud_propagates_validation_error_from_loanTypesUseCase() {
@@ -122,11 +92,10 @@ class SolicitudUseCaseTest {
                 .loanTypeId("LT-3")
                 .build();
 
-        when(userGateway.getUserEmailByDocument("DOC-3"))
-                .thenReturn(Mono.just("a@b.com"));
 
         SolicitudValidationException sve =
                 new SolicitudValidationException(List.of(), List.of(SolicitudErrorCode.LOAN_TYPE_NOT_REGISTERED), List.of());
+
         when(loanTypesUseCase.findByLoanTypeAndValidateAmount("LT-3", BigDecimal.valueOf(9000)))
                 .thenReturn(Mono.error(sve));
 
@@ -140,9 +109,8 @@ class SolicitudUseCaseTest {
                 })
                 .verify();
 
-        verify(userGateway).getUserEmailByDocument("DOC-3");
         verify(loanTypesUseCase).findByLoanTypeAndValidateAmount("LT-3", BigDecimal.valueOf(9000));
-        verifyNoInteractions(solicitudRepository);
+        verifyNoInteractions(solicitudRepository, userGateway);
     }
 
 
@@ -155,7 +123,7 @@ class SolicitudUseCaseTest {
 
         Solicitud base = Solicitud.builder()
                 .solicitudId("S-1")
-                .email("USER1@Mail.com")
+                .email("user1@mail.com")
                 .amount(new BigDecimal("10000"))
                 .term(12)
                 .loanTypeId("LT-1")
@@ -169,13 +137,11 @@ class SolicitudUseCaseTest {
         lt1.setLoanTypeId("LT-1");
         lt1.setName("Libre");
         lt1.setInterestRate(15);
-
         when(loanTypesUseCase.findAll()).thenReturn(Flux.just(lt1));
 
         State st = new State();
         st.setStateId("estado-001");
         st.setName("En revisión");
-
         when(stateUseCase.findAll()).thenReturn(Flux.just(st));
 
         User u = new User("1112", "Ana", "Perez", null, null, "1111", "user1@mail.com", "ddsdsds", "Customer", new BigDecimal("2000"));
@@ -195,7 +161,7 @@ class SolicitudUseCaseTest {
                 .assertNext(sr -> {
                     assertThat(sr.amount()).isEqualByComparingTo("10000");
                     assertThat(sr.term()).isEqualTo(12);
-                    assertThat(sr.email()).isEqualTo("USER1@Mail.com");
+                    assertThat(sr.email()).isEqualTo("user1@mail.com");
                     assertThat(sr.fullName()).isEqualTo("Ana Perez");
                     assertThat(sr.loanTypeName()).isEqualTo("Libre");
                     assertThat(sr.interestRate()).isEqualTo(15);
@@ -230,6 +196,8 @@ class SolicitudUseCaseTest {
                 .verifyComplete();
 
         verify(solicitudRepository).countAllForReview(eq(status));
+        verifyNoMoreInteractions(solicitudRepository);
+        verifyNoInteractions(loanTypesUseCase, stateUseCase, userGateway);
     }
 
     @Test
@@ -249,6 +217,7 @@ class SolicitudUseCaseTest {
 
         verify(solicitudRepository).countAllForReview(eq(status));
         verify(solicitudRepository, never()).findAllForReview(eq(status));
+        verifyNoInteractions(loanTypesUseCase, stateUseCase, userGateway);
     }
 
     @Test
@@ -261,5 +230,155 @@ class SolicitudUseCaseTest {
                 .verifyComplete();
 
         verify(solicitudRepository).countAllForReview(eq(status));
+    }
+
+
+    @Test
+    void validateUpdateSolicitud_success_maps_and_returns_enriched_decision() {
+        var solicitudActual = Solicitud.builder()
+                .solicitudId("S-1")
+                .email("user@mail.com")
+                .stateId("estado-001")
+                .build();
+
+        when(solicitudRepository.findSolicitud("S-1"))
+                .thenReturn(Mono.just(solicitudActual));
+
+        when(solicitudRepository.solicitudHavethisstatus(eq("S-1"), anyList()))
+                .thenReturn(Mono.just(true));
+
+        when(stateUseCase.findNameByStateId("estado-003"))
+                .thenReturn(Mono.just("Aprobada manual"));
+
+        var in = new Decision("S-1", "estado-003", "", "Motivo X", "", "", 0);
+
+        StepVerifier.create(useCase.validateUpdateSolicitud(in))
+                .assertNext(out ->{
+                    assertThat(out.solicitudId()).isEqualTo("S-1");
+                    assertThat(out.stateId()).isEqualTo("estado-003");
+                    assertThat(out.nameStateId()).isEqualTo("Aprobada manual");
+                    assertThat(out.motivo()).isEqualTo("Motivo X");
+                    assertThat(out.email()).isEqualTo("user@mail.com");
+                })
+                .verifyComplete();
+
+        verify(solicitudRepository).findSolicitud("S-1");
+        verify(solicitudRepository).solicitudHavethisstatus(eq("S-1"), anyList());
+        verify(stateUseCase).findNameByStateId("estado-003");
+    }
+
+    @Test
+    void validateUpdateSolicitud_throws_conflict_when_solicitud_not_found() {
+        when(solicitudRepository.findSolicitud("NOPE"))
+                .thenReturn(Mono.empty());
+
+        var in = new Decision("NOPE", "estado-003", "", "Motivo", "", "", 0);
+
+        StepVerifier.create(useCase.validateUpdateSolicitud(in))
+                .expectErrorSatisfies(err -> {
+                    assertThat(err).isInstanceOf(ConflictException.class);
+                    assertThat(((ConflictException) err).code())
+                            .isEqualTo(SolicitudErrorCode.SOLICITUD_NOT_EXIST.getCode());
+                })
+                .verify();
+
+        verify(solicitudRepository).findSolicitud("NOPE");
+        verify(solicitudRepository, never()).solicitudHavethisstatus(anyString(), anyList());
+        verifyNoInteractions(stateUseCase);
+    }
+
+    @Test
+    void validateUpdateSolicitud_throws_conflict_when_state_not_permitted() {
+        var solicitudActual = Solicitud.builder()
+                .solicitudId("S-2")
+                .email("mail@x.com")
+                .stateId("estado-002")
+                .build();
+
+        when(solicitudRepository.findSolicitud("S-2"))
+                .thenReturn(Mono.just(solicitudActual));
+
+        when(solicitudRepository.solicitudHavethisstatus(eq("S-2"), anyList()))
+                .thenReturn(Mono.just(false));
+
+        var in = new Decision("S-2", "estado-003", "", "Motivo", "", "", 0);
+
+        StepVerifier.create(useCase.validateUpdateSolicitud(in))
+                .expectErrorSatisfies(err -> {
+                    assertThat(err).isInstanceOf(ConflictException.class);
+                    assertThat(((ConflictException) err).code())
+                            .isEqualTo(SolicitudErrorCode.SOLICITUD_HAVE_OTHER_STATUS.getCode());
+                })
+                .verify();
+
+        verify(solicitudRepository).findSolicitud("S-2");
+        verify(solicitudRepository).solicitudHavethisstatus(eq("S-2"), anyList());
+        verifyNoInteractions(stateUseCase);
+    }
+
+    @Test
+    void updateStateOfSolicitud_completes_when_not_found() {
+        when(solicitudRepository.findSolicitud("UNKNOWN"))
+                .thenReturn(Mono.empty());
+
+        var in = new Decision("UNKNOWN", "estado-003", "Aprobada manual", "Motivo", "mail@x.com", "", 0);
+
+        StepVerifier.create(useCase.updateStateOfSolicitud(in))
+                .verifyComplete();
+
+        verify(solicitudRepository).findSolicitud("UNKNOWN");
+        verify(solicitudRepository, never()).save(any());
+    }
+
+    @Test
+    void updateStateOfSolicitud_noop_when_state_already_equals() {
+        var s = Solicitud.builder()
+                .solicitudId("S-3")
+                .stateId("estado-003")
+                .build();
+
+        when(solicitudRepository.findSolicitud("S-3"))
+                .thenReturn(Mono.just(s));
+
+        when(stateUseCase.findNameByStateId("estado-003"))
+                .thenReturn(Mono.just("Aprobada manual"));
+
+        var in = new Decision("S-3", "estado-003", "Aprobada manual", "Motivo", "mail@x.com", "", 0);
+
+        StepVerifier.create(useCase.updateStateOfSolicitud(in))
+                .verifyComplete();
+
+        verify(solicitudRepository).findSolicitud("S-3");
+        verify(stateUseCase).findNameByStateId("estado-003");
+        verify(solicitudRepository, never()).save(any());
+    }
+
+    @Test
+    void updateStateOfSolicitud_updates_and_saves_when_different() {
+        var s = Solicitud.builder()
+                .solicitudId("S-4")
+                .stateId("estado-001")
+                .build();
+
+        when(solicitudRepository.findSolicitud("S-4"))
+                .thenReturn(Mono.just(s));
+
+        when(stateUseCase.findNameByStateId("estado-001"))
+                .thenReturn(Mono.just("En revisión"));
+
+        when(solicitudRepository.save(any(Solicitud.class)))
+                .thenAnswer(inv -> Mono.just(inv.getArgument(0)));
+
+        var in = new Decision("S-4", "estado-003", "Aprobada manual", "Motivo", "mail@x.com", "", 0);
+
+        StepVerifier.create(useCase.updateStateOfSolicitud(in))
+                .verifyComplete();
+
+        verify(solicitudRepository).findSolicitud("S-4");
+        verify(stateUseCase).findNameByStateId("estado-001");
+        verify(solicitudRepository).save(argThat(saved ->
+                "S-4".equals(saved.getSolicitudId()) &&
+                        "estado-003".equals(saved.getStateId())
+        ));
     }
 }

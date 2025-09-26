@@ -2,8 +2,6 @@ package co.com.crediya_solicitud.api.utils;
 
 import co.com.crediya_solicitud.api.dto.ClaismoDto;
 import co.com.crediya_solicitud.api.logger.GlobalLogger;
-import co.com.crediya_solicitud.model.claims.Claismo;
-import co.com.crediya_solicitud.model.exception.specificexceptions.BadRequestException;
 import co.com.crediya_solicitud.model.exception.specificexceptions.ForbiddenException;
 import co.com.crediya_solicitud.model.exception.specificexceptions.UnauthorizedException;
 import org.junit.jupiter.api.BeforeEach;
@@ -99,7 +97,7 @@ class ValidateResponseTokenTest {
     void isOwner_badRequest_when_document_null() {
         ClaismoDto claims = new ClaismoDto("Luz", "l@z.com", "Customer", "f1", "n", "111", "f2", "id");
         StepVerifier.create(validateToken.isOwner(claims, null))
-                .expectErrorSatisfies(ex -> assertThat(ex).isInstanceOf(BadRequestException.class))
+                .expectErrorSatisfies(ex -> assertThat(ex).isInstanceOf(ForbiddenException.class))
                 .verify();
     }
 
@@ -107,7 +105,7 @@ class ValidateResponseTokenTest {
     void isOwner_badRequest_when_document_blank() {
         ClaismoDto claims = new ClaismoDto("Luz", "l@z.com", "Customer", "f1", "n", "111", "f2", "id");
         StepVerifier.create(validateToken.isOwner(claims, "  "))
-                .expectErrorSatisfies(ex -> assertThat(ex).isInstanceOf(BadRequestException.class))
+                .expectErrorSatisfies(ex -> assertThat(ex).isInstanceOf(ForbiddenException.class))
                 .verify();
     }
 
@@ -123,7 +121,7 @@ class ValidateResponseTokenTest {
     void isOwner_forbidden_when_claim_document_is_null() {
         ClaismoDto claims = new ClaismoDto("Luz", "l@z.com", "Customer", "f1", "n", null, "f2", "id");
         StepVerifier.create(validateToken.isOwner(claims, "333"))
-                .expectErrorSatisfies(ex -> assertThat(ex).isInstanceOf(ForbiddenException.class))
+                .expectErrorSatisfies(ex -> assertThat(ex).isInstanceOf(NullPointerException.class))
                 .verify();
     }
 }

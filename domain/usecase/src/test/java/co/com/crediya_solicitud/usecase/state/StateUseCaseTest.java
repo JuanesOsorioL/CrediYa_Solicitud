@@ -15,6 +15,11 @@ class StateUseCaseTest {
     private Logger logger;
     private StateUseCase useCase;
 
+    private static final String LOG_INICIO =
+            "StateUseCase -> findAll : Se inicia la consulta para traer todos los estados actuales de la BD";
+    private static final String LOG_POR_ELEMENTO =
+            "StateUseCase -> findAll : se consultaron todos los estados";
+
     @BeforeEach
     void setUp() {
         stateRepository = mock(StateRepository.class);
@@ -35,22 +40,18 @@ class StateUseCaseTest {
                 .verifyComplete();
 
         verify(stateRepository, times(1)).findAll();
-        // doOnNext se ejecuta por cada elemento emitido
-        verify(logger, times(2))
-                .info("StateUseCase -> findAll() : se llama a findAll del repositorio");
+        verify(logger, times(1)).info(LOG_INICIO);
+        verify(logger, times(2)).info(LOG_POR_ELEMENTO);
         verifyNoMoreInteractions(stateRepository);
     }
 
     @Test
     void findAll_sinResultados_completaSinLogs() {
         when(stateRepository.findAll()).thenReturn(Flux.empty());
-
-        StepVerifier.create(useCase.findAll())
-                .verifyComplete();
-
+        StepVerifier.create(useCase.findAll()).verifyComplete();
         verify(stateRepository, times(1)).findAll();
-        // No hay elementos -> doOnNext no se ejecuta
-        verify(logger, times(0)).info(anyString());
+        verify(logger, times(1)).info(LOG_INICIO);
+        verify(logger, never()).info(LOG_POR_ELEMENTO);
         verifyNoMoreInteractions(stateRepository);
     }
 
@@ -63,8 +64,8 @@ class StateUseCaseTest {
                 .verify();
 
         verify(stateRepository, times(1)).findAll();
-        // No hay onNext -> no se loguea
-        verify(logger, times(0)).info(anyString());
+        verify(logger, times(1)).info(LOG_INICIO);
+        verify(logger, never()).info(LOG_POR_ELEMENTO);
         verifyNoMoreInteractions(stateRepository);
     }
 }

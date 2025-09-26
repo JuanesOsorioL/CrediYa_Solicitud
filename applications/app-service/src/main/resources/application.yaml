@@ -1,42 +1,45 @@
 server:
-  port: ${SERVER_PORT:8083}
+  port: "${SERVER_PORT}"
 
 adapters:
   r2dbc:
-    host: ${DB_HOST:localhost}
-    port: ${DB_PORT:5432}
-    database: ${DB_NAME:solicitud}
-    schema: ${DB_SCHEMA:public}
-    username: ${DB_USER:creditUserData}
-    password: ${DB_PASS:za4iLVvR8qVq4yQv}
+    host: "${DB_HOST}"
+    port: "${DB_PORT}"
+    database: "${DB_NAME}"
+    schema: "${DB_SCHEMA}"
+    username: "${DB_USER}"
+    password: "${DB_PASS}"
 
 spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
     baseline-version: 1
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:solicitud}
+    url: "jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}"
+    user: "${DB_USER}"
+    password: "${DB_PASS}"
+    schemas: "${DB_SCHEMA}"
+    default-schema: "${DB_SCHEMA}"
+    locations: "classpath:db/migration"
 
-    user: ${DB_USER:creditUserData}
-    password: ${DB_PASS:za4iLVvR8qVq4yQv}
-
-    schemas: ${DB_SCHEMA:public}
-    default-schema: ${DB_SCHEMA:public}
-    locations: classpath:db/migration
   application:
     name: "CrediYa_Solicitud"
+
   r2dbc:
-    url: r2dbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:solicitud}?currentSchema=${DB_SCHEMA:public}
-    username: ${DB_USER:creditUserData}
-    password: ${DB_PASS:za4iLVvR8qVq4yQv}
+    url: "r2dbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?currentSchema=${DB_SCHEMA}"
+    username: "${DB_USER}"
+    password: "${DB_PASS}"
+
   devtools:
     add-properties: false
+
   h2:
     console:
       enabled: true
       path: "/h2"
-  profiles:
-    include: null
+
+  #profiles:
+    #include: null
 
 management:
   endpoints:
@@ -47,12 +50,13 @@ management:
     health:
       probes:
         enabled: true
+
   health:
     circuitbreakers:
       enabled: true
 
 cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200,http://localhost:8080,http://localhost:8083}
+  allowed-origins: "${CORS_ALLOWED_ORIGINS}"
 
 springdoc:
   api-docs:
@@ -75,28 +79,16 @@ other:
     base-url: "/api/v1/usuarios/document"
 
 adapter:
-  restconsumer:
-    url: ${RESTCONSUMER_URL:http://localhost:8080}
-    timeout: 5000
+  sqs:
+    region: "us-east-2"
+    notifier:
+      queue-url: https://sqs.us-east-2.amazonaws.com/657258631869/SQS_Notificaciones
+    callback:
+      queue-url: https://sqs.us-east-2.amazonaws.com/657258631869/SQS_Callback
+      wait-time-seconds: 20
+      max-messages: 10
 
-resilience4j:
-  circuitbreaker:
-    instances:
-      testGet:
-        registerHealthIndicator: true
-        failureRateThreshold: 50
-        slowCallRateThreshold: 50
-        slowCallDurationThreshold: "2s"
-        permittedNumberOfCallsInHalfOpenState: 3
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 10
-        waitDurationInOpenState: "10s"
-      testPost:
-        registerHealthIndicator: true
-        failureRateThreshold: 50
-        slowCallRateThreshold: 50
-        slowCallDurationThreshold: "2s"
-        permittedNumberOfCallsInHalfOpenState: 3
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 10
-        waitDurationInOpenState: "10s"
+
+  restconsumer:
+    url: "${RESTCONSUMER_URL}"
+    timeout: 5000
